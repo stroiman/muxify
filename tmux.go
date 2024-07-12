@@ -13,6 +13,10 @@ type TmuxSession struct {
 
 type TmuxSessions []TmuxSession
 
+func sanitizeOutput(output []byte) string {
+	return strings.Trim(string(output), "\n")
+}
+
 func StartSessionByName(name string) (TmuxSession, error) {
 
 	out, err := exec.Command("tmux", "new-session", "-s", name, "-d", "-F", "#{session_id}", "-P").Output()
@@ -20,7 +24,7 @@ func StartSessionByName(name string) (TmuxSession, error) {
 		return TmuxSession{}, err
 	} else {
 		return TmuxSession{
-			Id:   strings.Trim(string(out), "\n"),
+			Id:   sanitizeOutput(out),
 			Name: name,
 		}, nil
 	}
@@ -31,8 +35,7 @@ func GetRunningSessions() ([]TmuxSession, error) {
 	if err != nil {
 		return nil, err
 	}
-	output := string(stdOut)
-	lines := strings.Split(strings.Trim(output, "\n"), "\n")
+	lines := strings.Split(sanitizeOutput(stdOut), "\n")
 	result := make([]TmuxSession, len(lines))
 	for i, line := range lines {
 		parts := strings.Split(line, ":")
