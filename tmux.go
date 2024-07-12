@@ -1,6 +1,7 @@
 package muxify
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -12,6 +13,24 @@ type TmuxSession struct {
 }
 
 type TmuxSessions []TmuxSession
+
+func StartSessionByName(name string) (TmuxSession, error) {
+
+	err := exec.Command("tmux", "new-session", "-s", name, "-d").Run()
+	if err == nil {
+		var sessions TmuxSessions
+		sessions, err = GetRunningSessions()
+		if err == nil {
+			session, ok := sessions.FindByName(name)
+			if !ok {
+				return session, errors.New("Weird stuff")
+			} else {
+				return session, nil
+			}
+		}
+	}
+	return TmuxSession{}, err
+}
 
 func GetRunningSessions() ([]TmuxSession, error) {
 	stdOut, err := exec.Command("tmux", "list-sessions", "-F", "#{session_id}:#{session_name}").Output()
@@ -35,6 +54,9 @@ func GetRunningSessions() ([]TmuxSession, error) {
 }
 
 func (s TmuxSession) Kill() error {
+	if s.Id == "" {
+		panic("Trying to kill a session with no id")
+	}
 	return exec.Command("tmux", "kill-session", "-t", s.Id).Run()
 }
 

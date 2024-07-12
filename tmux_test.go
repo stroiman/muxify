@@ -41,5 +41,4 @@ var _ = Describe("Tmux", func() {
 			Expect(result).ToNot(ContainElement(HaveField("Name", "test-session")))
 		})
 	})
-
 })
