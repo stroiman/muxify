@@ -17,8 +17,12 @@ var _ = Describe("Tmux", func() {
 		})
 
 		AfterEach(func() {
-			exec.Command("tmux", "kill-session", "-t", "test-session").Run()
-			// Expect(err).ToNot(HaveOccurred())
+			sessions, err := GetRunningSessions()
+			Expect(err).ToNot(HaveOccurred())
+			session, ok := TmuxSessions(sessions).FindByName("test-session")
+			if ok {
+				Expect(session.Kill()).To(Succeed())
+			}
 		})
 
 		It("Returns a slice containing at least one element", func() {
@@ -30,12 +34,7 @@ var _ = Describe("Tmux", func() {
 		It("Can be killed", func() {
 			result, err := GetRunningSessions()
 			Expect(err).ToNot(HaveOccurred())
-			var session TmuxSession
-			for _, s := range result {
-				if s.Name == "test-session" {
-					session = s
-				}
-			}
+			session, _ := TmuxSessions(result).FindByName("test-session")
 			Expect(session.Kill()).To(Succeed())
 			result, err = GetRunningSessions()
 			Expect(err).ToNot(HaveOccurred())

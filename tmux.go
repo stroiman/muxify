@@ -11,6 +11,8 @@ type TmuxSession struct {
 	Name string
 }
 
+type TmuxSessions []TmuxSession
+
 func GetRunningSessions() ([]TmuxSession, error) {
 	stdOut, err := exec.Command("tmux", "list-sessions", "-F", "#{session_id}:#{session_name}").Output()
 	if err != nil {
@@ -34,4 +36,13 @@ func GetRunningSessions() ([]TmuxSession, error) {
 
 func (s TmuxSession) Kill() error {
 	return exec.Command("tmux", "kill-session", "-t", s.Id).Run()
+}
+
+func (s TmuxSessions) FindByName(name string) (session TmuxSession, ok bool) {
+	for _, session := range s {
+		if session.Name == name {
+			return session, true
+		}
+	}
+	return TmuxSession{}, false
 }
