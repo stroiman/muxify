@@ -1,7 +1,6 @@
 package muxify
 
 import (
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -16,20 +15,15 @@ type TmuxSessions []TmuxSession
 
 func StartSessionByName(name string) (TmuxSession, error) {
 
-	err := exec.Command("tmux", "new-session", "-s", name, "-d").Run()
-	if err == nil {
-		var sessions TmuxSessions
-		sessions, err = GetRunningSessions()
-		if err == nil {
-			session, ok := sessions.FindByName(name)
-			if !ok {
-				return session, errors.New("Weird stuff")
-			} else {
-				return session, nil
-			}
-		}
+	out, err := exec.Command("tmux", "new-session", "-s", name, "-d", "-F", "#{session_id}", "-P").Output()
+	if err != nil {
+		return TmuxSession{}, err
+	} else {
+		return TmuxSession{
+			Id:   strings.Trim(string(out), "\n"),
+			Name: name,
+		}, nil
 	}
-	return TmuxSession{}, err
 }
 
 func GetRunningSessions() ([]TmuxSession, error) {
