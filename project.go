@@ -1,7 +1,8 @@
 package muxify
 
 type Project struct {
-	Name string
+	Name             string
+	WorkingDirectory string
 }
 
 func (p Project) EnsureStarted() (TmuxSession, error) {
@@ -13,7 +14,11 @@ func (p Project) EnsureStarted() (TmuxSession, error) {
 	if ok {
 		return existing, nil
 	}
-	return StartSessionByName(p.Name)
+	if p.WorkingDirectory == "" {
+		return StartSessionByName(p.Name)
+	} else {
+		return StartSessionByNameInDir(p.Name, p.WorkingDirectory)
+	}
 
 	// ...
 }

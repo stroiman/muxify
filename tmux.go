@@ -17,6 +17,18 @@ func sanitizeOutput(output []byte) string {
 	return strings.Trim(string(output), "\n")
 }
 
+func StartSessionByNameInDir(name string, dir string) (TmuxSession, error) {
+
+	out, err := exec.Command("tmux", "new-session", "-s", name, "-d", "-F", "#{session_id}", "-P", "-c", dir).Output()
+	if err != nil {
+		return TmuxSession{}, err
+	} else {
+		return TmuxSession{
+			Id:   sanitizeOutput(out),
+			Name: name,
+		}, nil
+	}
+}
 func StartSessionByName(name string) (TmuxSession, error) {
 
 	out, err := exec.Command("tmux", "new-session", "-s", name, "-d", "-F", "#{session_id}", "-P").Output()
