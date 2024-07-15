@@ -41,6 +41,19 @@ var _ = Describe("Project", func() {
 			Expect(session).To(BeStarted())
 		})
 
+		It("Should create a session with one pane", func() {
+			proj := Project{
+				Name: "muxify-test-project",
+			}
+			session, err := proj.EnsureStarted()
+			defer session.Kill()
+			Expect(err).ToNot(HaveOccurred())
+			panes, err2 := session.GetPanes()
+			Expect(err2).ToNot(HaveOccurred())
+
+			Expect(panes).To(HaveExactElements(HaveField("Id", MatchRegexp("^\\%\\d+$"))))
+		})
+
 		It("Should start in the correct working directory", func() {
 			proj := Project{
 				Name:             "muxify-test-project",

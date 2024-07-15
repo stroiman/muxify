@@ -11,6 +11,10 @@ type TmuxSession struct {
 	Name string
 }
 
+type TmuxPane struct {
+	Id string
+}
+
 type TmuxSessions []TmuxSession
 
 func sanitizeOutput(output []byte) string {
@@ -76,4 +80,18 @@ func (s TmuxSessions) FindByName(name string) (session TmuxSession, ok bool) {
 		}
 	}
 	return TmuxSession{}, false
+}
+
+func (s TmuxSession) GetPanes() (panes []TmuxPane, err error) {
+	var output []byte
+	output, err = exec.Command("tmux", "list-panes", "-t", s.Id, "-F", "#{pane_id}").Output()
+	if err != nil {
+		return
+	}
+	lines := strings.Split(sanitizeOutput(output), "\n")
+	panes = make([]TmuxPane, len(lines))
+	for i, l := range lines {
+		panes[i] = TmuxPane{Id: l}
+	}
+	return
 }
