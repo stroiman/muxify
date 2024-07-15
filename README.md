@@ -40,3 +40,42 @@ This is written in Go
   fast feedback.
 - The code can be packaged into a compiled binary that can be distributed using
   native package managers.
+
+## Possible configuration properties
+
+This is just an example of where this might end up, but try to illustate the
+scenario of swithing between a laptop on the road, or at the desk with multiple
+monitors.
+
+When using multiple monitors, you might want to break out the tests to the other
+monitor, but on the road, you'd want the two to appear simultaneously.
+
+```yaml
+projects:
+  - name: My project
+  - working_folder: $HOME/src/my-project
+  - tasks:
+    - tests: pnpm test
+    - edit: nvim .
+  - layouts:
+    - single_monitor:
+      - sessions:
+          my-project:
+          - windows:
+              main:
+                panes:
+                  - tasks:edit
+                  - tasks:tests
+    - multi_monitor:
+      - sessions:
+          my-project:
+            - windows:
+                editor:
+                  panes:
+                    - tasks:edit
+          my-project-tests:
+            - windows:
+                editor:
+                  panes:
+                    - tasks:tests
+```
