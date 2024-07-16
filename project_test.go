@@ -3,7 +3,6 @@ package muxify_test
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -70,10 +69,10 @@ var _ = Describe("Project", func() {
 			// How? E.g. run `echo $PWD` in the shell and read the output
 
 			time.Sleep(400 * time.Millisecond)
-			Expect(exec.Command("tmux", "send-keys", "-t", session.Id, "echo $PWD\n").Run()).To(Succeed())
+			Expect(server.Command("send-keys", "-t", session.Id, "echo $PWD\n").Run()).To(Succeed())
 
 			time.Sleep(500 * time.Millisecond)
-			output, err2 := exec.Command("tmux", "capture-pane", "-t", session.Id, "-p", "-E", "10").Output()
+			output, err2 := server.Command("capture-pane", "-t", session.Id, "-p", "-E", "10").Output()
 			expected := fmt.Sprintf("(?m:^%s$)", dir)
 			Expect(string(output)).To(MatchRegexp(expected))
 

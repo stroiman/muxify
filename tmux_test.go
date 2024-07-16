@@ -1,8 +1,6 @@
 package muxify_test
 
 import (
-	"os/exec"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -18,7 +16,7 @@ var _ = Describe("Tmux", func() {
 
 	var _ = Describe("Muxify", func() {
 		BeforeEach(func() {
-			err := exec.Command("tmux", "new-session", "-s", "test-session", "-d").Run()
+			err := server.Command("new-session", "-s", "test-session", "-d").Run()
 			Expect(err).ToNot(HaveOccurred())
 		})
 
