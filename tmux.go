@@ -21,9 +21,24 @@ func sanitizeOutput(output []byte) string {
 	return strings.Trim(string(output), "\n")
 }
 
-func StartSessionByNameInDir(name string, dir string) (TmuxSession, error) {
+type TmuxLauncher struct {
+	ControlMode bool
+}
 
-	out, err := exec.Command("tmux", "new-session", "-s", name, "-d", "-F", "#{session_id}", "-P", "-c", dir).Output()
+func (l TmuxLauncher) Command(arg ...string) *exec.Cmd {
+
+	c := make([]string, 0)
+	if l.ControlMode {
+		c = append(c, "-C")
+	}
+	c = append(c, arg...)
+
+	return exec.Command("tmux", c...)
+}
+
+func StartSession(name string, arg ...string) (TmuxSession, error) {
+	c := append([]string{"new-session", "-F", "#{session_id}", "-P", "-d"}, arg...)
+	out, err := TmuxLauncher{}.Command(c...).Output()
 	if err != nil {
 		return TmuxSession{}, err
 	} else {
@@ -33,17 +48,13 @@ func StartSessionByNameInDir(name string, dir string) (TmuxSession, error) {
 		}, nil
 	}
 }
-func StartSessionByName(name string) (TmuxSession, error) {
 
-	out, err := exec.Command("tmux", "new-session", "-s", name, "-d", "-F", "#{session_id}", "-P").Output()
-	if err != nil {
-		return TmuxSession{}, err
-	} else {
-		return TmuxSession{
-			Id:   sanitizeOutput(out),
-			Name: name,
-		}, nil
-	}
+func StartSessionByNameInDir(name string, dir string) (TmuxSession, error) {
+	return StartSession(name, "-s", name, "-c", dir)
+}
+
+func StartSessionByName(name string) (TmuxSession, error) {
+	return StartSession(name, "-s", name)
 }
 
 func GetRunningSessions() ([]TmuxSession, error) {
