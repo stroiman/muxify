@@ -17,8 +17,25 @@ type TmuxPane struct {
 
 type TmuxSessions []TmuxSession
 
+// sanitizeOutput removes new-line character codes. This is useful for parsing
+// the standard out of a command that will normally be terminated with a
+// new-line character.
 func sanitizeOutput(output []byte) string {
 	return strings.Trim(string(output), "\n")
+}
+
+func removeEmptyLines(lines []string) []string {
+	result := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if line != "" {
+			result = append(result, line)
+		}
+	}
+	return result
+}
+
+func getLines(output []byte) []string {
+	return removeEmptyLines(strings.Split(string(output), "\n"))
 }
 
 type TmuxServer struct {
@@ -61,22 +78,12 @@ func (s TmuxServer) StartSessionByName(name string) (TmuxSession, error) {
 	return s.StartSession(name, "-s", name)
 }
 
-func removeEmptyLines(lines []string) []string {
-	result := make([]string, 0, len(lines))
-	for _, line := range lines {
-		if line != "" {
-			result = append(result, line)
-		}
-	}
-	return result
-}
-
 func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
 	stdOut, err := s.Command("start", ";", "list-sessions", "-F", "#{session_id}:#{session_name}").Output()
 	if err != nil {
 		return nil, err
 	}
-	lines := removeEmptyLines(strings.Split((string(stdOut)), "\n"))
+	lines := getLines(stdOut)
 	result := make([]TmuxSession, len(lines))
 	for i, line := range lines {
 		parts := strings.Split(line, ":")
@@ -113,7 +120,7 @@ func (s TmuxServer) GetPanesForSession(session TmuxSession) (panes []TmuxPane, e
 	if err != nil {
 		return
 	}
-	lines := strings.Split(sanitizeOutput(output), "\n")
+	lines := getLines(output)
 	panes = make([]TmuxPane, len(lines))
 	for i, l := range lines {
 		panes[i] = TmuxPane{Id: l}
