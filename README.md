@@ -82,13 +82,17 @@ projects:
 
 ## Note about the tests
 
-Right now most tests starts an actual tmux session using the default server.
-This means that it will use _your_ tmux configuration, _your_ default shell, and
-_your_ default shell configuration file, e.g. `~/.zshrc`.
+The system is tested by actually starting a tmux server. The tests starts a new
+tmux server, as to not interfere with a normal tmux server (assuming you didn't
+launch a server on a socket named `muxify-test-socket`).
 
-It is the intention that tests integrating with tmux directly should start a new
-server on a different socket, so the test themselves can control the
-environment, and not use _your_ environment.
+The server is loaded with the `tmux.conf` file in this project which sets
+`default-command "/bin/sh"` - which _should_ use `/bin/sh` as the default shell
+as a non-login shell, as to not load your own `$HOME/.profile`.
 
-An added benefit would be a speed up of the tests, if you run a many processes
-in the shell configuration file.
+This _should_ test the system with a minimal configuration, which provides the
+following benefits
+
+ * Starts the tests in a controllable environment, not affected by the user's
+   personal setup.
+ * A minimal shell profile results in faster startup and execution of the tests.

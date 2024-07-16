@@ -11,7 +11,7 @@ var _ = Describe("Tmux", func() {
 	var server TmuxServer
 
 	BeforeEach(func() {
-		server = TmuxServer{}
+		server = MustCreateTestServer()
 	})
 
 	Describe("GetRunningSessions()", func() {

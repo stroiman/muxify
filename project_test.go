@@ -23,7 +23,7 @@ func MustCreateTestServer() TmuxServer {
 	}
 	configFile := filepath.Join(wd, "tmux.conf")
 	return TmuxServer{
-		SocketName: "test-socket",
+		SocketName: "muxify-test-socket",
 		ConfigFile: configFile,
 	}
 }
