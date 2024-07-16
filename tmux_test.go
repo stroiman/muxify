@@ -10,6 +10,12 @@ import (
 )
 
 var _ = Describe("Tmux", func() {
+	var server TmuxServer
+
+	BeforeEach(func() {
+		server = TmuxServer{}
+	})
+
 	var _ = Describe("Muxify", func() {
 		BeforeEach(func() {
 			err := exec.Command("tmux", "new-session", "-s", "test-session", "-d").Run()
@@ -21,7 +27,7 @@ var _ = Describe("Tmux", func() {
 			Expect(err).ToNot(HaveOccurred())
 			session, ok := TmuxSessions(sessions).FindByName("test-session")
 			if ok {
-				Expect(session.Kill()).To(Succeed())
+				Expect(server.KillSession(session)).To(Succeed())
 			}
 		})
 
@@ -35,7 +41,7 @@ var _ = Describe("Tmux", func() {
 			result, err := GetRunningSessions()
 			Expect(err).ToNot(HaveOccurred())
 			session, _ := TmuxSessions(result).FindByName("test-session")
-			Expect(session.Kill()).To(Succeed())
+			Expect(server.KillSession(session)).To(Succeed())
 			result, err = GetRunningSessions()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).ToNot(ContainElement(HaveField("Name", "test-session")))

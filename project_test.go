@@ -40,7 +40,7 @@ var _ = Describe("Project", func() {
 			}
 			session, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
-			defer session.Kill()
+			defer server.KillSession(session)
 			Expect(session).To(BeStarted())
 		})
 
@@ -49,7 +49,7 @@ var _ = Describe("Project", func() {
 				Name: "muxify-test-project",
 			}
 			session, err := proj.EnsureStarted(server)
-			defer session.Kill()
+			defer server.KillSession(session)
 			Expect(err).ToNot(HaveOccurred())
 			panes, err2 := server.GetPanesForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
@@ -64,7 +64,7 @@ var _ = Describe("Project", func() {
 			}
 			session, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
-			defer session.Kill()
+			defer server.KillSession(session)
 
 			// Verify that it was started in the right working directory.
 			// How? E.g. run `echo $PWD` in the shell and read the output
@@ -85,7 +85,7 @@ var _ = Describe("Project", func() {
 				Name: "muxify-test-project",
 			}
 			s1, err1 := proj.EnsureStarted(server)
-			defer s1.Kill()
+			defer server.KillSession(s1)
 			Expect(err1).ToNot(HaveOccurred())
 			s2, err2 := proj.EnsureStarted(server)
 			Expect(err2).ToNot(HaveOccurred())

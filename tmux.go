@@ -77,11 +77,11 @@ func GetRunningSessions() ([]TmuxSession, error) {
 	return result, nil
 }
 
-func (s TmuxSession) Kill() error {
-	if s.Id == "" {
+func (s TmuxServer) KillSession(session TmuxSession) error {
+	if session.Id == "" {
 		panic("Trying to kill a session with no id")
 	}
-	return exec.Command("tmux", "kill-session", "-t", s.Id).Run()
+	return s.Command("kill-session", "-t", session.Id).Run()
 }
 
 func (s TmuxSessions) FindByName(name string) (session TmuxSession, ok bool) {
