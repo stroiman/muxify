@@ -16,9 +16,12 @@ import (
 var _ = Describe("Project", func() {
 	Describe("EnsureStarted", func() {
 		var dir string
+		var server TmuxServer
+
 		BeforeEach(func() {
 			var err error
 			dir, err = os.MkdirTemp("", "muxify-test-")
+			server = TmuxServer{}
 			if err != nil {
 				panic(err)
 			}
@@ -35,7 +38,7 @@ var _ = Describe("Project", func() {
 			proj := Project{
 				Name: "muxify-test-project",
 			}
-			session, err := proj.EnsureStarted()
+			session, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
 			defer session.Kill()
 			Expect(session).To(BeStarted())
@@ -45,7 +48,7 @@ var _ = Describe("Project", func() {
 			proj := Project{
 				Name: "muxify-test-project",
 			}
-			session, err := proj.EnsureStarted()
+			session, err := proj.EnsureStarted(server)
 			defer session.Kill()
 			Expect(err).ToNot(HaveOccurred())
 			panes, err2 := session.GetPanes()
@@ -59,7 +62,7 @@ var _ = Describe("Project", func() {
 				Name:             "muxify-test-project",
 				WorkingDirectory: dir,
 			}
-			session, err := proj.EnsureStarted()
+			session, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
 			defer session.Kill()
 
@@ -81,10 +84,10 @@ var _ = Describe("Project", func() {
 			proj := Project{
 				Name: "muxify-test-project",
 			}
-			s1, err1 := proj.EnsureStarted()
+			s1, err1 := proj.EnsureStarted(server)
 			defer s1.Kill()
 			Expect(err1).ToNot(HaveOccurred())
-			s2, err2 := proj.EnsureStarted()
+			s2, err2 := proj.EnsureStarted(server)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(s1.Id).To(Equal(s2.Id))
 		})

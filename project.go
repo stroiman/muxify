@@ -5,7 +5,7 @@ type Project struct {
 	WorkingDirectory string
 }
 
-func (p Project) EnsureStarted() (TmuxSession, error) {
+func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	sessions, err := GetRunningSessions()
 	if err != nil {
 		return TmuxSession{}, err
@@ -15,9 +15,9 @@ func (p Project) EnsureStarted() (TmuxSession, error) {
 		return existing, nil
 	}
 	if p.WorkingDirectory == "" {
-		return StartSessionByName(p.Name)
+		return server.StartSessionByName(p.Name)
 	} else {
-		return StartSessionByNameInDir(p.Name, p.WorkingDirectory)
+		return server.StartSessionByNameInDir(p.Name, p.WorkingDirectory)
 	}
 
 	// ...
