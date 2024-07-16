@@ -13,14 +13,18 @@ import (
 )
 
 var _ = Describe("Project", func() {
+	var server TmuxServer
+
+	BeforeEach(func() {
+		server = TmuxServer{}
+	})
+
 	Describe("EnsureStarted", func() {
 		var dir string
-		var server TmuxServer
 
 		BeforeEach(func() {
 			var err error
 			dir, err = os.MkdirTemp("", "muxify-test-")
-			server = TmuxServer{}
 			if err != nil {
 				panic(err)
 			}
