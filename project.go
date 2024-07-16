@@ -6,7 +6,7 @@ type Project struct {
 }
 
 func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
-	sessions, err := GetRunningSessions()
+	sessions, err := server.GetRunningSessions()
 	if err != nil {
 		return TmuxSession{}, err
 	}

@@ -57,8 +57,8 @@ func (s TmuxServer) StartSessionByName(name string) (TmuxSession, error) {
 	return s.StartSession(name, "-s", name)
 }
 
-func GetRunningSessions() ([]TmuxSession, error) {
-	stdOut, err := exec.Command("tmux", "list-sessions", "-F", "#{session_id}:#{session_name}").Output()
+func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
+	stdOut, err := s.Command("list-sessions", "-F", "#{session_id}:#{session_name}").Output()
 	if err != nil {
 		return nil, err
 	}
