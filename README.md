@@ -82,8 +82,8 @@ projects:
 
 ## Note about the tests
 
-Right now the tests starts an actual tmux session using the default server. This
-means that it will use _your_ tmux configuration, _your_ default shell, and
+Right now most tests starts an actual tmux session using the default server.
+This means that it will use _your_ tmux configuration, _your_ default shell, and
 _your_ default shell configuration file, e.g. `~/.zshrc`.
 
 It is the intention that tests integrating with tmux directly should start a new
