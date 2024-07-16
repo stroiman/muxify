@@ -41,6 +41,7 @@ func getLines(output []byte) []string {
 type TmuxServer struct {
 	ControlMode bool
 	SocketName  string
+	ConfigFile  string
 }
 
 func (s TmuxServer) Command(arg ...string) *exec.Cmd {
@@ -51,6 +52,9 @@ func (s TmuxServer) Command(arg ...string) *exec.Cmd {
 	}
 	if s.SocketName != "" {
 		c = append(c, "-L", s.SocketName)
+	}
+	if s.ConfigFile != "" {
+		c = append(c, "-f", s.ConfigFile)
 	}
 	c = append(c, arg...)
 
@@ -81,6 +85,10 @@ func (s TmuxServer) StartSessionByName(name string) (TmuxSession, error) {
 func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
 	stdOut, err := s.Command("start", ";", "list-sessions", "-F", "#{session_id}:#{session_name}").Output()
 	if err != nil {
+		exitErr, ok := err.(*exec.ExitError)
+		if ok {
+			fmt.Println("Exit error!!\n", string(exitErr.Stderr))
+		}
 		return nil, err
 	}
 	lines := getLines(stdOut)
