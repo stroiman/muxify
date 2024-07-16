@@ -23,6 +23,7 @@ func sanitizeOutput(output []byte) string {
 
 type TmuxServer struct {
 	ControlMode bool
+	SocketName  string
 }
 
 func (s TmuxServer) Command(arg ...string) *exec.Cmd {
@@ -30,6 +31,9 @@ func (s TmuxServer) Command(arg ...string) *exec.Cmd {
 	c := make([]string, 0)
 	if s.ControlMode {
 		c = append(c, "-C")
+	}
+	if s.SocketName != "" {
+		c = append(c, "-L", s.SocketName)
 	}
 	c = append(c, arg...)
 
@@ -57,12 +61,22 @@ func (s TmuxServer) StartSessionByName(name string) (TmuxSession, error) {
 	return s.StartSession(name, "-s", name)
 }
 
+func removeEmptyLines(lines []string) []string {
+	result := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if line != "" {
+			result = append(result, line)
+		}
+	}
+	return result
+}
+
 func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
-	stdOut, err := s.Command("list-sessions", "-F", "#{session_id}:#{session_name}").Output()
+	stdOut, err := s.Command("start", ";", "list-sessions", "-F", "#{session_id}:#{session_name}").Output()
 	if err != nil {
 		return nil, err
 	}
-	lines := strings.Split(sanitizeOutput(stdOut), "\n")
+	lines := removeEmptyLines(strings.Split((string(stdOut)), "\n"))
 	result := make([]TmuxSession, len(lines))
 	for i, line := range lines {
 		parts := strings.Split(line, ":")
