@@ -51,7 +51,7 @@ var _ = Describe("Project", func() {
 			session, err := proj.EnsureStarted(server)
 			defer session.Kill()
 			Expect(err).ToNot(HaveOccurred())
-			panes, err2 := session.GetPanes()
+			panes, err2 := server.GetPanesForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
 
 			Expect(panes).To(HaveExactElements(HaveField("Id", MatchRegexp("^\\%\\d+$"))))

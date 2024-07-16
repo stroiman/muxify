@@ -93,9 +93,9 @@ func (s TmuxSessions) FindByName(name string) (session TmuxSession, ok bool) {
 	return TmuxSession{}, false
 }
 
-func (s TmuxSession) GetPanes() (panes []TmuxPane, err error) {
+func (s TmuxServer) GetPanesForSession(session TmuxSession) (panes []TmuxPane, err error) {
 	var output []byte
-	output, err = exec.Command("tmux", "list-panes", "-t", s.Id, "-F", "#{pane_id}").Output()
+	output, err = s.Command("list-panes", "-t", session.Id, "-F", "#{pane_id}").Output()
 	if err != nil {
 		return
 	}
