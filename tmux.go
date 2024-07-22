@@ -116,7 +116,8 @@ func parseLinesQuoted(output []byte) ([][2]string, error) {
 }
 
 func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
-	stdOut, err := s.Command("start", ";", "list-sessions", "-F", `"#{session_id}":"#{session_name}"`).Output()
+	stdOut, err := s.Command("start", ";", "list-sessions", "-F", `"#{session_id}":"#{session_name}"`).
+		Output()
 	if err != nil {
 		exitErr, ok := err.(*exec.ExitError)
 		if ok {
@@ -165,7 +166,8 @@ func (s TmuxServer) GetPanesForSession(session TmuxSession) (panes []TmuxPane, e
 
 func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows TmuxWindows, err error) {
 	var output []byte
-	output, err = s.Command("list-windows", "-t", session.Id, "-F", `"#{window_id}":"#{window_name}"`).Output()
+	output, err = s.Command("list-windows", "-t", session.Id, "-F", `"#{window_id}":"#{window_name}"`).
+		Output()
 	if err != nil {
 		return
 	}
@@ -201,10 +203,18 @@ func (s TmuxServer) createWindowBeforeOrAfterTarget(
 	return window, err
 }
 
-func (s TmuxServer) CreateWindowAfterTarget(session TmuxSession, target TmuxWindow, name string) (TmuxWindow, error) {
+func (s TmuxServer) CreateWindowAfterTarget(
+	session TmuxSession,
+	target TmuxWindow,
+	name string,
+) (TmuxWindow, error) {
 	return s.createWindowBeforeOrAfterTarget(target, name, false)
 }
 
-func (s TmuxServer) CreateWindowBeforeTarget(session TmuxSession, target TmuxWindow, name string) (TmuxWindow, error) {
+func (s TmuxServer) CreateWindowBeforeTarget(
+	session TmuxSession,
+	target TmuxWindow,
+	name string,
+) (TmuxWindow, error) {
 	return s.createWindowBeforeOrAfterTarget(target, name, true)
 }

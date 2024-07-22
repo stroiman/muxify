@@ -89,8 +89,12 @@ var _ = Describe("Project", func() {
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
 
-			Expect(server.Command("send-keys", "-t", session.Id, "echo $PWD-END\n").Run()).To(Succeed())
-			Eventually(getOutputEvents(GetLines(cm.stdout))).Should(Receive(HaveField("Data", Equal(dir))))
+			Expect(
+				server.Command("send-keys", "-t", session.Id, "echo $PWD-END\n").Run(),
+			).To(Succeed())
+			Eventually(
+				getOutputEvents(GetLines(cm.stdout)),
+			).Should(Receive(HaveField("Data", Equal(dir))))
 		})
 
 		It("Should return the existing session if it has been started", func() {

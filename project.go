@@ -29,7 +29,11 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 				if !ok {
 					if i == 0 {
 						target := tmuxWindows[0]
-						tmuxWindow, err = server.CreateWindowBeforeTarget(session, target, window.Name)
+						tmuxWindow, err = server.CreateWindowBeforeTarget(
+							session,
+							target,
+							window.Name,
+						)
 					} else {
 						target := windowMap[p.Windows[i-1]]
 						tmuxWindow, err = server.CreateWindowAfterTarget(session, target, window.Name)
@@ -55,7 +59,11 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 		err = server.RenameWindow(previousWindow.Id, p.Windows[0].Name)
 		for i, window := range p.Windows {
 			if i > 0 && err == nil {
-				previousWindow, err = server.CreateWindowAfterTarget(session, previousWindow, window.Name)
+				previousWindow, err = server.CreateWindowAfterTarget(
+					session,
+					previousWindow,
+					window.Name,
+				)
 			}
 		}
 	}
