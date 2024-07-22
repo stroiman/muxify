@@ -32,6 +32,7 @@ var _ = Describe("Project", func() {
 					c <- event
 				}
 			}
+			close(c)
 		}()
 		return c
 	}
