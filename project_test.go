@@ -13,11 +13,16 @@ import (
 
 var _ = Describe("Project", Ordered, func() {
 	var server TmuxServer
-	var currentSession *TmuxSession
+	var knownSessions []TmuxSession
 
 	handleProjectStart := func(session TmuxSession, err error) TmuxSession {
 		Expect(err).ToNot(HaveOccurred())
-		currentSession = &session
+		for _, knownSession := range knownSessions {
+			if knownSession.Id == session.Id {
+				return session
+			}
+		}
+		knownSessions = append(knownSessions, session)
 		return session
 	}
 
@@ -27,12 +32,12 @@ var _ = Describe("Project", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		currentSession = nil
+		knownSessions = nil
 	})
 
 	AfterEach(func() {
-		if currentSession != nil {
-			server.KillSession(*currentSession)
+		for _, knownSession := range knownSessions {
+			server.KillSession(knownSession)
 		}
 	})
 
@@ -114,8 +119,7 @@ var _ = Describe("Project", Ordered, func() {
 				Name: CreateRandomProjectName(),
 			}
 			s1 := handleProjectStart(proj.EnsureStarted(server))
-			s2, err2 := proj.EnsureStarted(server)
-			Expect(err2).ToNot(HaveOccurred())
+			s2 := handleProjectStart(proj.EnsureStarted(server))
 			Expect(s1.Id).To(Equal(s2.Id))
 		})
 
@@ -161,8 +165,7 @@ var _ = Describe("Project", Ordered, func() {
 			}
 			session := handleProjectStart(proj.EnsureStarted(server))
 			proj.Windows = append(proj.Windows, Window{Name: "Window-3"})
-			_, err := proj.EnsureStarted(server)
-			Expect(err).ToNot(HaveOccurred())
+			handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(windows).To(HaveExactElements(
@@ -185,8 +188,7 @@ var _ = Describe("Project", Ordered, func() {
 				{Name: "Window-1"},
 				{Name: "Window-2"},
 			}
-			_, err := proj.EnsureStarted(server)
-			Expect(err).ToNot(HaveOccurred())
+			handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(windows).To(HaveExactElements(
