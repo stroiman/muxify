@@ -2,7 +2,6 @@ package muxify_test
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os/exec"
 	"regexp"
@@ -23,7 +22,6 @@ func GetLines(r io.ReadCloser) <-chan string {
 		for s.Scan() {
 			c <- s.Text()
 		}
-		fmt.Println("Closing channel")
 		close(c)
 	}()
 	return c

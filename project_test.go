@@ -102,7 +102,7 @@ var _ = Describe("Project", Ordered, func() {
 			Expect(panes).To(HaveExactElements(HaveField("Id", MatchRegexp("^\\%\\d+$"))))
 		})
 
-		It("Should start in the correct working directory", Focus, func() {
+		It("Should start in the correct working directory", func() {
 			proj := Project{
 				Name:             CreateRandomProjectName(),
 				WorkingDirectory: dir,
@@ -114,7 +114,6 @@ var _ = Describe("Project", Ordered, func() {
 
 			defer func() {
 				if !success {
-					fmt.Println("FAILURE")
 					output, err := server.Command("capture-pane", "-p", "-t", session.Id).Output()
 					if err != nil {
 						fmt.Println("Error getting target pane", err)
@@ -124,8 +123,6 @@ var _ = Describe("Project", Ordered, func() {
 					}
 				}
 			}()
-
-			fmt.Println("Executing verificaion")
 
 			Expect(
 				server.Command("send-keys", "-t", session.Id, "echo $PWD-END\n").Run(),
