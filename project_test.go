@@ -1,6 +1,7 @@
 package muxify_test
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 
@@ -97,7 +98,7 @@ var _ = Describe("Project", Ordered, func() {
 			Expect(panes).To(HaveExactElements(HaveField("Id", MatchRegexp("^\\%\\d+$"))))
 		})
 
-		It("Should start in the correct working directory", func() {
+		It("Should start in the correct working directory", Focus, func() {
 			proj := Project{
 				Name:             CreateRandomProjectName(),
 				WorkingDirectory: dir,
@@ -105,6 +106,22 @@ var _ = Describe("Project", Ordered, func() {
 			session := handleProjectStart(proj.EnsureStarted(server))
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
+			success := false
+
+			defer func() {
+				if !success {
+					fmt.Println("FAILURE")
+					output, err := server.Command("capture-pane", "-p", "-t", session.Id).Output()
+					if err != nil {
+						fmt.Println("Error getting target pane", err)
+					} else {
+						fmt.Println("TARGET PANE OUTPUT")
+						fmt.Println(string(output))
+					}
+				}
+			}()
+
+			fmt.Println("Executing verificaion")
 
 			Expect(
 				server.Command("send-keys", "-t", session.Id, "echo $PWD-END\n").Run(),
@@ -112,6 +129,7 @@ var _ = Describe("Project", Ordered, func() {
 			Eventually(
 				getOutputEvents(GetLines(cm.stdout)),
 			).Should(Receive(HaveField("Data", Equal(dir))))
+			success = true
 		})
 
 		It("Should return the existing session if it has been started", func() {
