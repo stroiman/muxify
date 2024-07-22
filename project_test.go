@@ -11,15 +11,29 @@ import (
 	. "github.com/stroiman/muxify"
 )
 
-var _ = Describe("Project", func() {
+var _ = Describe("Project", Ordered, func() {
 	var server TmuxServer
+	var currentSession *TmuxSession
+
+	handleProjectStart := func(session TmuxSession, err error) TmuxSession {
+		Expect(err).ToNot(HaveOccurred())
+		currentSession = &session
+		return session
+	}
+
+	BeforeAll(func() {
+		server = MustCreateTestServer()
+		DeferCleanup(server.Kill)
+	})
 
 	BeforeEach(func() {
-		server = MustCreateTestServer()
+		currentSession = nil
 	})
 
 	AfterEach(func() {
-		server.Kill()
+		if currentSession != nil {
+			server.KillSession(*currentSession)
+		}
 	})
 
 	var getOutputEvents = func(lines <-chan string) <-chan TmuxOutputEvent {
@@ -61,19 +75,17 @@ var _ = Describe("Project", func() {
 
 		It("Should start a new tmux session if not already started", func() {
 			proj := Project{
-				Name: "muxify-test-project",
+				Name: CreateRandomName(),
 			}
-			session, err := proj.EnsureStarted(server)
-			Expect(err).ToNot(HaveOccurred())
+			session := handleProjectStart(proj.EnsureStarted(server))
 			Expect(session).To(BeStarted())
 		})
 
 		It("Should create a session with one pane", func() {
 			proj := Project{
-				Name: "muxify-test-project",
+				Name: CreateRandomProjectName(),
 			}
-			session, err := proj.EnsureStarted(server)
-			Expect(err).ToNot(HaveOccurred())
+			session := handleProjectStart(proj.EnsureStarted(server))
 			panes, err2 := server.GetPanesForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
 
@@ -82,11 +94,10 @@ var _ = Describe("Project", func() {
 
 		It("Should start in the correct working directory", func() {
 			proj := Project{
-				Name:             "muxify-test-project",
+				Name:             CreateRandomProjectName(),
 				WorkingDirectory: dir,
 			}
-			session, err := proj.EnsureStarted(server)
-			Expect(err).ToNot(HaveOccurred())
+			session := handleProjectStart(proj.EnsureStarted(server))
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
 
@@ -100,10 +111,9 @@ var _ = Describe("Project", func() {
 
 		It("Should return the existing session if it has been started", func() {
 			proj := Project{
-				Name: "muxify-test-project",
+				Name: CreateRandomProjectName(),
 			}
-			s1, err1 := proj.EnsureStarted(server)
-			Expect(err1).ToNot(HaveOccurred())
+			s1 := handleProjectStart(proj.EnsureStarted(server))
 			s2, err2 := proj.EnsureStarted(server)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(s1.Id).To(Equal(s2.Id))
@@ -111,13 +121,12 @@ var _ = Describe("Project", func() {
 
 		It("Should set the window name according to the specification", func() {
 			proj := Project{
-				Name: "muxify-test-project",
+				Name: CreateRandomProjectName(),
 				Windows: []Window{
 					{Name: "Window-1"},
 				},
 			}
-			s1, err1 := proj.EnsureStarted(server)
-			Expect(err1).ToNot(HaveOccurred())
+			s1 := handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(s1)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(windows).To(HaveExactElements(HaveField("Name", "Window-1")))
@@ -125,15 +134,14 @@ var _ = Describe("Project", func() {
 
 		It("Should support creating multiple windows", func() {
 			proj := Project{
-				Name: "muxify-test-project",
+				Name: CreateRandomProjectName(),
 				Windows: []Window{
 					{Name: "Window-1"},
 					{Name: "Window-2"},
 					{Name: "Window-3"},
 				},
 			}
-			session, err1 := proj.EnsureStarted(server)
-			Expect(err1).ToNot(HaveOccurred())
+			session := handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(windows).To(HaveExactElements(
@@ -145,17 +153,15 @@ var _ = Describe("Project", func() {
 
 		It("Should create missing windows when the session was already running", func() {
 			proj := Project{
-				Name: "muxify-test-project",
+				Name: CreateRandomProjectName(),
 				Windows: []Window{
 					{Name: "Window-1"},
 					{Name: "Window-2"},
 				},
 			}
-			session, err := proj.EnsureStarted(server)
-			Expect(err).ToNot(HaveOccurred())
-
+			session := handleProjectStart(proj.EnsureStarted(server))
 			proj.Windows = append(proj.Windows, Window{Name: "Window-3"})
-			_, err = proj.EnsureStarted(server)
+			_, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
@@ -168,19 +174,18 @@ var _ = Describe("Project", func() {
 
 		It("Should create missing windows when the session was already running", func() {
 			proj := Project{
-				Name: "muxify-test-project",
+				Name: CreateRandomProjectName(),
 				Windows: []Window{
 					{Name: "Window-2"},
 				},
 			}
-			session, err := proj.EnsureStarted(server)
-			Expect(err).ToNot(HaveOccurred())
+			session := handleProjectStart(proj.EnsureStarted(server))
 
 			proj.Windows = []Window{
 				{Name: "Window-1"},
 				{Name: "Window-2"},
 			}
-			_, err = proj.EnsureStarted(server)
+			_, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())

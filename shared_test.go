@@ -22,6 +22,10 @@ func CreateRandomName() string {
 	return randStringRunes(10)
 }
 
+func CreateRandomProjectName() string {
+	return "project-" + CreateRandomName()
+}
+
 func MustCreateTestServer() TmuxServer {
 	wd, err := os.Getwd()
 	if err != nil {
