@@ -29,7 +29,11 @@ var _ = Describe("Project", Ordered, func() {
 
 	BeforeAll(func() {
 		server = MustCreateTestServer()
-		DeferCleanup(server.Kill)
+
+		DeferCleanup(func() {
+			// Ignore the error that occurs if server is not running.
+			server.Kill()
+		})
 	})
 
 	BeforeEach(func() {
