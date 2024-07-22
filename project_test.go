@@ -70,8 +70,8 @@ var _ = Describe("Project", func() {
 				Name: "muxify-test-project",
 			}
 			session, err := proj.EnsureStarted(server)
-			defer server.KillSession(session)
 			Expect(err).ToNot(HaveOccurred())
+			defer server.KillSession(session)
 			panes, err2 := server.GetPanesForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
 
@@ -102,8 +102,8 @@ var _ = Describe("Project", func() {
 				Name: "muxify-test-project",
 			}
 			s1, err1 := proj.EnsureStarted(server)
-			defer server.KillSession(s1)
 			Expect(err1).ToNot(HaveOccurred())
+			defer server.KillSession(s1)
 			s2, err2 := proj.EnsureStarted(server)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(s1.Id).To(Equal(s2.Id))
@@ -117,8 +117,8 @@ var _ = Describe("Project", func() {
 				},
 			}
 			s1, err1 := proj.EnsureStarted(server)
-			defer server.KillSession(s1)
 			Expect(err1).ToNot(HaveOccurred())
+			defer server.KillSession(s1)
 			windows, err2 := server.GetWindowsForSession(s1)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(windows).To(HaveExactElements(HaveField("Name", "Window-1")))
@@ -134,8 +134,8 @@ var _ = Describe("Project", func() {
 				},
 			}
 			session, err1 := proj.EnsureStarted(server)
-			defer server.KillSession(session)
 			Expect(err1).ToNot(HaveOccurred())
+			defer server.KillSession(session)
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(windows).To(HaveExactElements(
@@ -154,8 +154,8 @@ var _ = Describe("Project", func() {
 				},
 			}
 			session, err := proj.EnsureStarted(server)
-			defer server.KillSession(session)
 			Expect(err).ToNot(HaveOccurred())
+			defer server.KillSession(session)
 
 			proj.Windows = append(proj.Windows, Window{Name: "Window-3"})
 			_, err = proj.EnsureStarted(server)
@@ -177,8 +177,8 @@ var _ = Describe("Project", func() {
 				},
 			}
 			session, err := proj.EnsureStarted(server)
-			defer server.KillSession(session)
 			Expect(err).ToNot(HaveOccurred())
+			defer server.KillSession(session)
 
 			proj.Windows = []Window{
 				{Name: "Window-1"},
