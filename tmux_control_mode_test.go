@@ -4,25 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 
 	. "github.com/stroiman/muxify"
 )
-
-func MustCreateTestServer() TmuxServer {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	configFile := filepath.Join(wd, "tmux.conf")
-	return TmuxServer{
-		SocketName: "test-socket",
-		ConfigFile: configFile,
-	}
-}
 
 var removeControlCharRegexp *regexp.Regexp = regexp.MustCompile(`\\\d{3}`)
 

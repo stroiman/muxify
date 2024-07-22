@@ -2,12 +2,11 @@ package muxify_test
 
 import (
 	"math/rand"
-	"time"
-)
+	"os"
+	"path/filepath"
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
+	. "github.com/stroiman/muxify"
+)
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
@@ -21,4 +20,16 @@ func randStringRunes(n int) string {
 
 func CreateRandomName() string {
 	return randStringRunes(10)
+}
+
+func MustCreateTestServer() TmuxServer {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	configFile := filepath.Join(wd, "tmux.conf")
+	return TmuxServer{
+		SocketName: "test-socket",
+		ConfigFile: configFile,
+	}
 }
