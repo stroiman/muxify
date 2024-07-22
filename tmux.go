@@ -15,6 +15,11 @@ type TmuxPane struct {
 	Id string
 }
 
+type TmuxWindow struct {
+	Id   string
+	Name string
+}
+
 type TmuxSessions []TmuxSession
 
 // sanitizeOutput removes new-line character codes. This is useful for parsing
@@ -82,6 +87,19 @@ func (s TmuxServer) StartSessionByName(name string) (TmuxSession, error) {
 	return s.StartSession(name, "-s", name)
 }
 
+func parseLines(output []byte) ([][2]string, error) {
+	lines := getLines(output)
+	result := make([][2]string, len(lines))
+	for i, line := range lines {
+		parts := strings.Split(line, ":")
+		if len(parts) != 2 {
+			return [][2]string{}, fmt.Errorf("Bad result from tmux: %s", line)
+		}
+		result[i] = [2]string{parts[0], parts[1]}
+	}
+	return result, nil
+}
+
 func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
 	stdOut, err := s.Command("start", ";", "list-sessions", "-F", "#{session_id}:#{session_name}").Output()
 	if err != nil {
@@ -91,19 +109,13 @@ func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
 		}
 		return nil, err
 	}
-	lines := getLines(stdOut)
+	lines, err := parseLines(stdOut)
 	result := make([]TmuxSession, len(lines))
 	for i, line := range lines {
-		parts := strings.Split(line, ":")
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("Bad result from tmux: %s", line)
-		}
-		result[i] = TmuxSession{
-			Id:   parts[0],
-			Name: parts[1],
-		}
+		result[i].Id = line[0]
+		result[i].Name = line[1]
 	}
-	return result, nil
+	return result, err
 }
 
 func (s TmuxServer) KillSession(session TmuxSession) error {
@@ -134,4 +146,24 @@ func (s TmuxServer) GetPanesForSession(session TmuxSession) (panes []TmuxPane, e
 		panes[i] = TmuxPane{Id: l}
 	}
 	return
+}
+
+func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows []TmuxWindow, err error) {
+	var output []byte
+	output, err = s.Command("list-windows", "-t", session.Id, "-F", "#{window_id}:#{window_name}").Output()
+	if err != nil {
+		return
+	}
+	lines, err := parseLines(output)
+	windows = make([]TmuxWindow, len(lines))
+
+	for i, line := range lines {
+		windows[i].Id = line[0]
+		windows[i].Name = line[1]
+	}
+	return
+}
+
+func (s TmuxServer) RenameWindow(windowId string, name string) error {
+	return s.Command("rename-window", "-t", windowId, name).Run()
 }

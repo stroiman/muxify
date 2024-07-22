@@ -104,6 +104,35 @@ var _ = Describe("Project", func() {
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(s1.Id).To(Equal(s2.Id))
 		})
+
+		It("Should set the window name according to the specification", func() {
+			proj := Project{
+				Name: "muxify-test-project",
+				Windows: []Window{
+					Window{Name: "Window-1"},
+				},
+			}
+			s1, err1 := proj.EnsureStarted(server)
+			defer server.KillSession(s1)
+			Expect(err1).ToNot(HaveOccurred())
+			windows, err2 := server.GetWindowsForSession(s1)
+			Expect(err2).ToNot(HaveOccurred())
+			Expect(windows).To(ContainElements(HaveField("Name", "Window-1")))
+		})
+
+		It("Should support creating multiple windows", func() {
+			Skip("TODO")
+		})
+
+		It("Should support window names with a colon", func() {
+			Skip("TODO - or whatever character that the implementation detail chose as a separator")
+		})
+
+		It("Should create missing windows when the session was already running", func() {
+			// E.g. you define two windows. One exists allready, the other doesn't.
+			// The missing window should be created - at the correct index.
+			Skip("TODO")
+		})
 	})
 })
 
