@@ -96,3 +96,28 @@ following benefits
  * Starts the tests in a controllable environment, not affected by the user's
    personal setup.
  * A minimal shell profile results in faster startup and execution of the tests.
+
+## Developer log
+
+### [July 8th 2024 - New project, and a tmux session](./devlog/Part1.md)
+
+Creating a new project, and setting up a test runner. The outcome of this
+session was a simple function to ensure a session with a specific name was
+started.
+
+### [July 15th  2024 - Session working dir and test sync](./devlog/Part2.md)
+
+Starting the session with a specific working directory, and verifying that the
+directory is set correctly. But coming to many dead ends trying to optimise how
+this is tested.
+
+### [July 16th 2024 - Isolate test from dev env, and sync in control mode](./devlog/Part3.md)
+
+Fixed optimising testing as well as isolate the tests from the user's
+environment.
+
+### [July 16th 2024 - Isolate test from dev env, and sync in control mode](./devlog/Part4.md)
+
+Fixed optimising testing as well as isolate the tests from the user's
+environment.
+
