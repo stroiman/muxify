@@ -156,7 +156,6 @@ func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows []TmuxWin
 	}
 	lines, err := parseLines(output)
 	windows = make([]TmuxWindow, len(lines))
-
 	for i, line := range lines {
 		windows[i].Id = line[0]
 		windows[i].Name = line[1]
@@ -166,4 +165,17 @@ func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows []TmuxWin
 
 func (s TmuxServer) RenameWindow(windowId string, name string) error {
 	return s.Command("rename-window", "-t", windowId, name).Run()
+}
+
+func (s TmuxServer) CreateWindowAfterTarget(session TmuxSession, target TmuxWindow, name string) (TmuxWindow, error) {
+	output, err := s.Command("new-window", "-t", target.Id, "-a", "-F", "#{window_id}", "-P").Output()
+	window := TmuxWindow{
+		Id:   sanitizeOutput(output),
+		Name: name,
+	}
+	if err == nil {
+		err = s.RenameWindow(window.Id, name)
+	}
+	return window, err
+
 }

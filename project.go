@@ -12,8 +12,8 @@ type Window struct {
 
 func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	var (
-		session TmuxSession
-		windows []TmuxWindow
+		session     TmuxSession
+		tmuxWindows []TmuxWindow
 	)
 	sessions, err := server.GetRunningSessions()
 	if err != nil {
@@ -29,12 +29,18 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	} else {
 		session, err = server.StartSessionByNameInDir(p.Name, p.WorkingDirectory)
 	}
-	windows, err = server.GetWindowsForSession(session)
+	tmuxWindows, err = server.GetWindowsForSession(session)
 	if err != nil {
 		return TmuxSession{}, err
 	}
 	if len(p.Windows) > 0 {
-		err = server.RenameWindow(windows[0].Id, p.Windows[0].Name)
+		var previousWindow = tmuxWindows[0]
+		err = server.RenameWindow(previousWindow.Id, p.Windows[0].Name)
+		for i, window := range p.Windows {
+			if i > 0 && err == nil {
+				previousWindow, err = server.CreateWindowAfterTarget(session, previousWindow, window.Name)
+			}
+		}
 	}
 	return session, err
 }

@@ -109,7 +109,7 @@ var _ = Describe("Project", func() {
 			proj := Project{
 				Name: "muxify-test-project",
 				Windows: []Window{
-					Window{Name: "Window-1"},
+					{Name: "Window-1"},
 				},
 			}
 			s1, err1 := proj.EnsureStarted(server)
@@ -117,10 +117,31 @@ var _ = Describe("Project", func() {
 			Expect(err1).ToNot(HaveOccurred())
 			windows, err2 := server.GetWindowsForSession(s1)
 			Expect(err2).ToNot(HaveOccurred())
-			Expect(windows).To(ContainElements(HaveField("Name", "Window-1")))
+			Expect(windows).To(HaveExactElements(HaveField("Name", "Window-1")))
 		})
 
 		It("Should support creating multiple windows", func() {
+			proj := Project{
+				Name: "muxify-test-project",
+				Windows: []Window{
+					{Name: "Window-1"},
+					{Name: "Window-2"},
+					{Name: "Window-3"},
+				},
+			}
+			s1, err1 := proj.EnsureStarted(server)
+			defer server.KillSession(s1)
+			Expect(err1).ToNot(HaveOccurred())
+			windows, err2 := server.GetWindowsForSession(s1)
+			Expect(err2).ToNot(HaveOccurred())
+			Expect(windows).To(HaveExactElements(
+				HaveField("Name", "Window-1"),
+				HaveField("Name", "Window-2"),
+				HaveField("Name", "Window-3"),
+			))
+		})
+
+		It("Should support custom working folder and environment for each window", func() {
 			Skip("TODO")
 		})
 
