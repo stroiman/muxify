@@ -29,10 +29,10 @@ var _ = Describe("Project", Ordered, func() {
 
 	BeforeAll(func() {
 		server = MustCreateTestServer()
-
 		DeferCleanup(func() {
-			// Ignore the error that occurs if server is not running.
-			server.Kill()
+			// kill-server will return an error if no server is running. So if it
+			// does not return an error, some test did not clean up correctly
+			Expect(server.Kill()).ToNot(Succeed())
 		})
 	})
 
