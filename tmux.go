@@ -21,6 +21,17 @@ type TmuxWindow struct {
 	Name string
 }
 
+type TmuxWindows []TmuxWindow
+
+func (ws TmuxWindows) FindByName(name string) (TmuxWindow, bool) {
+	for _, window := range ws {
+		if window.Name == name {
+			return window, true
+		}
+	}
+	return TmuxWindow{}, false
+}
+
 type TmuxSessions []TmuxSession
 
 // sanitizeOutput removes new-line character codes. This is useful for parsing
@@ -152,7 +163,7 @@ func (s TmuxServer) GetPanesForSession(session TmuxSession) (panes []TmuxPane, e
 	return
 }
 
-func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows []TmuxWindow, err error) {
+func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows TmuxWindows, err error) {
 	var output []byte
 	output, err = s.Command("list-windows", "-t", session.Id, "-F", `"#{window_id}":"#{window_name}"`).Output()
 	if err != nil {

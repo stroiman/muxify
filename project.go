@@ -13,7 +13,7 @@ type Window struct {
 func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	var (
 		session     TmuxSession
-		tmuxWindows []TmuxWindow
+		tmuxWindows TmuxWindows
 	)
 	sessions, err := server.GetRunningSessions()
 	if err != nil {
@@ -21,7 +21,24 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	}
 	existing, ok := TmuxSessions(sessions).FindByName(p.Name)
 	if ok {
-		return existing, nil
+		tmuxWindows, err = server.GetWindowsForSession(session)
+		windowMap := make(map[Window]TmuxWindow)
+		for i, window := range p.Windows {
+			if err == nil {
+				tmuxWindow, ok := tmuxWindows.FindByName(window.Name)
+				if !ok {
+					if i == 0 {
+						panic("Cannot insert first window yet")
+						// tmuxWindow, err = server.CreateWindowB(session, tmuxWindows[0], window.Name)
+					} else {
+						target := windowMap[p.Windows[i-1]]
+						tmuxWindow, err = server.CreateWindowAfterTarget(session, target, window.Name)
+					}
+				}
+				windowMap[window] = tmuxWindow
+			}
+		}
+		return existing, err
 	}
 
 	if p.WorkingDirectory == "" {

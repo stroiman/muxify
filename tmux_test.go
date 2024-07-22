@@ -30,7 +30,6 @@ var _ = Describe("Tmux", func() {
 
 	var _ = Describe("Muxify", func() {
 		BeforeEach(func() {
-
 			output, err := server.Command("new-session", "-s", "test-session", "-d").Output()
 			if err != nil {
 				fmt.Println("Error!", string(output))

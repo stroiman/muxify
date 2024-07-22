@@ -129,10 +129,34 @@ var _ = Describe("Project", func() {
 					{Name: "Window-3"},
 				},
 			}
-			s1, err1 := proj.EnsureStarted(server)
-			defer server.KillSession(s1)
+			session, err1 := proj.EnsureStarted(server)
+			defer server.KillSession(session)
 			Expect(err1).ToNot(HaveOccurred())
-			windows, err2 := server.GetWindowsForSession(s1)
+			windows, err2 := server.GetWindowsForSession(session)
+			Expect(err2).ToNot(HaveOccurred())
+			Expect(windows).To(HaveExactElements(
+				HaveField("Name", "Window-1"),
+				HaveField("Name", "Window-2"),
+				HaveField("Name", "Window-3"),
+			))
+		})
+
+		It("Should create missing windows when the session was already running", func() {
+			proj := Project{
+				Name: "muxify-test-project",
+				Windows: []Window{
+					{Name: "Window-1"},
+					{Name: "Window-2"},
+				},
+			}
+			session, err := proj.EnsureStarted(server)
+			defer server.KillSession(session)
+			Expect(err).ToNot(HaveOccurred())
+
+			proj.Windows = append(proj.Windows, Window{Name: "Window-3"})
+			_, err = proj.EnsureStarted(server)
+			Expect(err).ToNot(HaveOccurred())
+			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(windows).To(HaveExactElements(
 				HaveField("Name", "Window-1"),
@@ -142,16 +166,6 @@ var _ = Describe("Project", func() {
 		})
 
 		It("Should support custom working folder and environment for each window", func() {
-			Skip("TODO")
-		})
-
-		It("Should support window names with a colon", func() {
-			Skip("TODO - or whatever character that the implementation detail chose as a separator")
-		})
-
-		It("Should create missing windows when the session was already running", func() {
-			// E.g. you define two windows. One exists allready, the other doesn't.
-			// The missing window should be created - at the correct index.
 			Skip("TODO")
 		})
 	})
