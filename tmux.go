@@ -61,6 +61,10 @@ type TmuxServer struct {
 	ConfigFile  string
 }
 
+func (s TmuxServer) Kill() error {
+	return s.Command("kill-server").Run()
+}
+
 func (s TmuxServer) Command(arg ...string) *exec.Cmd {
 
 	c := make([]string, 0)

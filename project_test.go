@@ -18,6 +18,10 @@ var _ = Describe("Project", func() {
 		server = MustCreateTestServer()
 	})
 
+	AfterEach(func() {
+		server.Kill()
+	})
+
 	var getOutputEvents = func(lines <-chan string) <-chan TmuxOutputEvent {
 		c := make(chan TmuxOutputEvent)
 		r := regexp.MustCompile("^\\%output ([^ ]+) (.*)-END")
@@ -61,7 +65,6 @@ var _ = Describe("Project", func() {
 			}
 			session, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
-			defer server.KillSession(session)
 			Expect(session).To(BeStarted())
 		})
 
@@ -71,7 +74,6 @@ var _ = Describe("Project", func() {
 			}
 			session, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
-			defer server.KillSession(session)
 			panes, err2 := server.GetPanesForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
 
@@ -85,7 +87,6 @@ var _ = Describe("Project", func() {
 			}
 			session, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
-			defer server.KillSession(session)
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
 
@@ -103,7 +104,6 @@ var _ = Describe("Project", func() {
 			}
 			s1, err1 := proj.EnsureStarted(server)
 			Expect(err1).ToNot(HaveOccurred())
-			defer server.KillSession(s1)
 			s2, err2 := proj.EnsureStarted(server)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(s1.Id).To(Equal(s2.Id))
@@ -118,7 +118,6 @@ var _ = Describe("Project", func() {
 			}
 			s1, err1 := proj.EnsureStarted(server)
 			Expect(err1).ToNot(HaveOccurred())
-			defer server.KillSession(s1)
 			windows, err2 := server.GetWindowsForSession(s1)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(windows).To(HaveExactElements(HaveField("Name", "Window-1")))
@@ -135,7 +134,6 @@ var _ = Describe("Project", func() {
 			}
 			session, err1 := proj.EnsureStarted(server)
 			Expect(err1).ToNot(HaveOccurred())
-			defer server.KillSession(session)
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
 			Expect(windows).To(HaveExactElements(
@@ -155,7 +153,6 @@ var _ = Describe("Project", func() {
 			}
 			session, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
-			defer server.KillSession(session)
 
 			proj.Windows = append(proj.Windows, Window{Name: "Window-3"})
 			_, err = proj.EnsureStarted(server)
@@ -178,7 +175,6 @@ var _ = Describe("Project", func() {
 			}
 			session, err := proj.EnsureStarted(server)
 			Expect(err).ToNot(HaveOccurred())
-			defer server.KillSession(session)
 
 			proj.Windows = []Window{
 				{Name: "Window-1"},
