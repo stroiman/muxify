@@ -3,6 +3,7 @@ package muxify
 import (
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -87,21 +88,24 @@ func (s TmuxServer) StartSessionByName(name string) (TmuxSession, error) {
 	return s.StartSession(name, "-s", name)
 }
 
-func parseLines(output []byte) ([][2]string, error) {
+var lineParser *regexp.Regexp = regexp.MustCompile(`^"([^"]+)":"([^"]+)"$`)
+
+func parseLinesQuoted(output []byte) ([][2]string, error) {
 	lines := getLines(output)
 	result := make([][2]string, len(lines))
 	for i, line := range lines {
-		parts := strings.Split(line, ":")
-		if len(parts) != 2 {
+		submatch := lineParser.FindStringSubmatch(line)
+		if submatch == nil {
 			return [][2]string{}, fmt.Errorf("Bad result from tmux: %s", line)
 		}
-		result[i] = [2]string{parts[0], parts[1]}
+
+		result[i] = [2]string{submatch[1], submatch[2]}
 	}
 	return result, nil
 }
 
 func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
-	stdOut, err := s.Command("start", ";", "list-sessions", "-F", "#{session_id}:#{session_name}").Output()
+	stdOut, err := s.Command("start", ";", "list-sessions", "-F", `"#{session_id}":"#{session_name}"`).Output()
 	if err != nil {
 		exitErr, ok := err.(*exec.ExitError)
 		if ok {
@@ -109,7 +113,7 @@ func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
 		}
 		return nil, err
 	}
-	lines, err := parseLines(stdOut)
+	lines, err := parseLinesQuoted(stdOut)
 	result := make([]TmuxSession, len(lines))
 	for i, line := range lines {
 		result[i].Id = line[0]
@@ -150,11 +154,11 @@ func (s TmuxServer) GetPanesForSession(session TmuxSession) (panes []TmuxPane, e
 
 func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows []TmuxWindow, err error) {
 	var output []byte
-	output, err = s.Command("list-windows", "-t", session.Id, "-F", "#{window_id}:#{window_name}").Output()
+	output, err = s.Command("list-windows", "-t", session.Id, "-F", `"#{window_id}":"#{window_name}"`).Output()
 	if err != nil {
 		return
 	}
-	lines, err := parseLines(output)
+	lines, err := parseLinesQuoted(output)
 	windows = make([]TmuxWindow, len(lines))
 	for i, line := range lines {
 		windows[i].Id = line[0]
