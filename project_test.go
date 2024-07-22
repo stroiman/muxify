@@ -20,7 +20,7 @@ var _ = Describe("Project", func() {
 
 	var getOutputEvents = func(lines <-chan string) <-chan TmuxOutputEvent {
 		c := make(chan TmuxOutputEvent)
-		r := regexp.MustCompile("^\\%output ([^ ]+) (.*)$")
+		r := regexp.MustCompile("^\\%output ([^ ]+) (.*)-END")
 		go func() {
 			for line := range lines {
 				m := r.FindStringSubmatch(line)
@@ -78,7 +78,7 @@ var _ = Describe("Project", func() {
 			Expect(panes).To(HaveExactElements(HaveField("Id", MatchRegexp("^\\%\\d+$"))))
 		})
 
-		It("Should start in the correct working directory2", func() {
+		It("Should start in the correct working directory", func() {
 			proj := Project{
 				Name:             "muxify-test-project",
 				WorkingDirectory: dir,
@@ -89,7 +89,7 @@ var _ = Describe("Project", func() {
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
 
-			Expect(server.Command("send-keys", "-t", session.Id, "echo $PWD\n").Run()).To(Succeed())
+			Expect(server.Command("send-keys", "-t", session.Id, "echo $PWD-END\n").Run()).To(Succeed())
 			Eventually(getOutputEvents(GetLines(cm.stdout))).Should(Receive(HaveField("Data", Equal(dir))))
 		})
 
