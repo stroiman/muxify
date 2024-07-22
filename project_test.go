@@ -165,6 +165,31 @@ var _ = Describe("Project", func() {
 			))
 		})
 
+		It("Should create missing windows when the session was already running", func() {
+			proj := Project{
+				Name: "muxify-test-project",
+				Windows: []Window{
+					{Name: "Window-2"},
+				},
+			}
+			session, err := proj.EnsureStarted(server)
+			defer server.KillSession(session)
+			Expect(err).ToNot(HaveOccurred())
+
+			proj.Windows = []Window{
+				{Name: "Window-1"},
+				{Name: "Window-2"},
+			}
+			_, err = proj.EnsureStarted(server)
+			Expect(err).ToNot(HaveOccurred())
+			windows, err2 := server.GetWindowsForSession(session)
+			Expect(err2).ToNot(HaveOccurred())
+			Expect(windows).To(HaveExactElements(
+				HaveField("Name", "Window-1"),
+				HaveField("Name", "Window-2"),
+			))
+		})
+
 		It("Should support custom working folder and environment for each window", func() {
 			Skip("TODO")
 		})

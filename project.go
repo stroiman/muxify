@@ -28,8 +28,8 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 				tmuxWindow, ok := tmuxWindows.FindByName(window.Name)
 				if !ok {
 					if i == 0 {
-						panic("Cannot insert first window yet")
-						// tmuxWindow, err = server.CreateWindowB(session, tmuxWindows[0], window.Name)
+						target := tmuxWindows[0]
+						tmuxWindow, err = server.CreateWindowBeforeTarget(session, target, window.Name)
 					} else {
 						target := windowMap[p.Windows[i-1]]
 						tmuxWindow, err = server.CreateWindowAfterTarget(session, target, window.Name)
