@@ -42,6 +42,32 @@ func startSessionAndSetFirstWindowName(
 	return
 }
 
+func ensureWindowHasPanes(
+	server TmuxServer,
+	window *TmuxWindow,
+	configuredWindow Window,
+) error {
+	for i, pane := range configuredWindow.Panes {
+		if i == 0 {
+			err := server.Command("select-pane", "-t", window.Id, "-T", pane.Name).Run()
+			if err != nil {
+				return err
+			}
+		} else {
+			output, err := server.Command("split-window", "-t", window.Id, "-P", "-F", "#{pane_id").Output()
+			if err != nil {
+				return err
+			}
+			paneId := sanitizeOutput(output)
+			err = server.Command("select-pane", "-t", paneId, "-T", pane.Name).Run()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	var (
 		session     TmuxSession
@@ -78,13 +104,15 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 
 		existingWindow := windowMap[configuredWindow.Id]
 		if existingWindow == nil {
-			windowMap[configuredWindow.Id], err = server.CreateWindow(
+			existingWindow, err = server.CreateWindow(
 				windowTarget,
 				configuredWindow.Name,
 			)
+			windowMap[configuredWindow.Id] = existingWindow
 		} else {
 			err = server.MoveWindow(existingWindow, windowTarget)
 		}
+		ensureWindowHasPanes(server, existingWindow, configuredWindow)
 	}
 	return session, err
 }

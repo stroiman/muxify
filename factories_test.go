@@ -38,3 +38,13 @@ func (p *TestProject) ReplaceWindowNames(windowNames ...string) {
 	}
 	p.Project.Windows = windows
 }
+
+func CreateWindowWithPaneNames(windowName string, paneNames ...string) Window {
+	window := NewWindow(windowName)
+	panes := make([]Pane, len(paneNames))
+	for i, name := range paneNames {
+		panes[i] = Pane{name}
+	}
+	window.Panes = panes
+	return window
+}

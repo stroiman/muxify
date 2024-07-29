@@ -203,6 +203,23 @@ var _ = Describe("Project", Ordered, func() {
 			))
 		})
 
+		It("Should create the panes with the correct names", func() {
+			proj := CreateProjectWithWindows(
+				CreateWindowWithPaneNames("Window-1", "Pane-1", "Pane-2"),
+				CreateWindowWithPaneNames("Window-2", "Pane-3", "Pane-4"),
+			)
+			handleProjectStart(proj.EnsureStarted(server))
+			expected := []T{
+				{"Window-1", "Pane-1"},
+				{"Window-1", "Pane-2"},
+				{"Window-2", "Pane-3"},
+				{"Window-2", "Pane-4"},
+			}
+			result, err := server.GetWindowAndPaneNames()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(HaveExactElements(expected))
+		})
+
 		It("Should support custom working folder and environment for each window", func() {
 			Skip("TODO")
 		})

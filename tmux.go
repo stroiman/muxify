@@ -236,3 +236,27 @@ func (s TmuxServer) MoveWindow(
 	args = append(args, target.createArgs()...)
 	return s.Command(args...).Run()
 }
+
+type T struct {
+	WindowName string
+	PaneTitle  string
+}
+
+func (s TmuxServer) GetWindowAndPaneNames() ([]T, error) {
+	output, err := s.Command(
+		"list-panes",
+		"-a",
+		"-F",
+		`#{window_name}:#{pane_title}`,
+	).Output()
+	if err != nil {
+		return nil, err
+	}
+	lines := getLines(output)
+	result := make([]T, len(lines))
+	for i, line := range lines {
+		parts := strings.Split(line, ":")
+		result[i] = T{parts[0], parts[1]}
+	}
+	return result, nil
+}
