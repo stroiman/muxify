@@ -1,13 +1,25 @@
 package muxify
 
+import "github.com/google/uuid"
+
 type Project struct {
 	Name             string
 	WorkingDirectory string
 	Windows          []Window
 }
 
+type WindowId = uuid.UUID
+
 type Window struct {
+	Id   WindowId
 	Name string
+}
+
+func NewWindow(name string) Window {
+	return Window{
+		Id:   uuid.New(),
+		Name: name,
+	}
 }
 
 func startSessionAndSetFirstWindowName(
@@ -39,10 +51,10 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 		session, err = startSessionAndSetFirstWindowName(server, p)
 	}
 	tmuxWindows, err = server.GetWindowsForSession(session)
-	windowMap := make(map[Window]*TmuxWindow)
+	windowMap := make(map[WindowId]*TmuxWindow)
 	for _, window := range p.Windows {
 		if tmuxWindow, ok := tmuxWindows.FindByName(window.Name); ok {
-			windowMap[window] = &tmuxWindow
+			windowMap[window.Id] = &tmuxWindow
 		}
 	}
 	for i, configuredWindow := range p.Windows {
@@ -56,12 +68,12 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 			// Other windows are placed _after_ the previously configured window
 			// which we assume is already in the right place because it was
 			// processed in the previous iteration.
-			windowTarget = AfterWindow(windowMap[p.Windows[i-1]])
+			windowTarget = AfterWindow(windowMap[p.Windows[i-1].Id])
 		}
 
-		existingWindow := windowMap[configuredWindow]
+		existingWindow := windowMap[configuredWindow.Id]
 		if existingWindow == nil {
-			windowMap[configuredWindow], err = server.CreateWindow(
+			windowMap[configuredWindow.Id], err = server.CreateWindow(
 				windowTarget,
 				configuredWindow.Name,
 			)

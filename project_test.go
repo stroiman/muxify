@@ -146,7 +146,7 @@ var _ = Describe("Project", Ordered, func() {
 			proj := Project{
 				Name: CreateRandomProjectName(),
 				Windows: []Window{
-					{Name: "Window-1"},
+					NewWindow("Window-1"),
 				},
 			}
 			s1 := handleProjectStart(proj.EnsureStarted(server))
@@ -159,9 +159,9 @@ var _ = Describe("Project", Ordered, func() {
 			proj := Project{
 				Name: CreateRandomProjectName(),
 				Windows: []Window{
-					{Name: "Window-1"},
-					{Name: "Window-2"},
-					{Name: "Window-3"},
+					NewWindow("Window-1"),
+					NewWindow("Window-2"),
+					NewWindow("Window-3"),
 				},
 			}
 			session := handleProjectStart(proj.EnsureStarted(server))
@@ -178,8 +178,8 @@ var _ = Describe("Project", Ordered, func() {
 			proj := Project{
 				Name: CreateRandomProjectName(),
 				Windows: []Window{
-					{Name: "Window-1"},
-					{Name: "Window-2"},
+					NewWindow("Window-1"),
+					NewWindow("Window-2"),
 				},
 			}
 			session := handleProjectStart(proj.EnsureStarted(server))
@@ -198,17 +198,17 @@ var _ = Describe("Project", Ordered, func() {
 			proj := Project{
 				Name: CreateRandomProjectName(),
 				Windows: []Window{
-					{Name: "Window-4"},
-					{Name: "Window-1"},
-					{Name: "Window-3"},
+					NewWindow("Window-4"),
+					NewWindow("Window-1"),
+					NewWindow("Window-3"),
 				},
 			}
 			session := handleProjectStart(proj.EnsureStarted(server))
 			proj.Windows = []Window{
-				{Name: "Window-1"},
-				{Name: "Window-2"},
-				{Name: "Window-3"},
-				{Name: "Window-4"},
+				NewWindow("Window-1"),
+				NewWindow("Window-2"),
+				NewWindow("Window-3"),
+				NewWindow("Window-4"),
 			}
 			handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
@@ -225,14 +225,14 @@ var _ = Describe("Project", Ordered, func() {
 			proj := Project{
 				Name: CreateRandomProjectName(),
 				Windows: []Window{
-					{Name: "Window-2"},
+					NewWindow("Window-2"),
 				},
 			}
 			session := handleProjectStart(proj.EnsureStarted(server))
 
 			proj.Windows = []Window{
-				{Name: "Window-1"},
-				{Name: "Window-2"},
+				NewWindow("Window-1"),
+				NewWindow("Window-2"),
 			}
 			handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
