@@ -188,17 +188,39 @@ func (s TmuxServer) RenameWindow(windowId string, name string) error {
 	return s.Command("rename-window", "-t", windowId, name).Run()
 }
 
-func (s TmuxServer) CreateWindowBeforeOrAfterTarget(
-	target *TmuxWindow,
-	name string,
-	before bool,
-) (*TmuxWindow, error) {
-	args := []string{"new-window", "-t", target.Id, "-n", name, "-F", "#{window_id}", "-P"}
-	if before {
-		args = append(args, "-b")
-	} else {
-		args = append(args, "-a")
+type WindowTarget struct {
+	target *TmuxWindow
+	before bool
+}
+
+func BeforeWindow(target *TmuxWindow) WindowTarget {
+	return WindowTarget{
+		target: target,
+		before: true,
 	}
+}
+
+func AfterWindow(target *TmuxWindow) WindowTarget {
+	return WindowTarget{
+		target: target,
+		before: false,
+	}
+}
+
+func (t WindowTarget) createArgs() []string {
+	if t.before {
+		return []string{"-b", "-t", t.target.Id}
+	} else {
+		return []string{"-a", "-t", t.target.Id}
+	}
+}
+
+func (s TmuxServer) CreateWindow(
+	target WindowTarget,
+	name string,
+) (*TmuxWindow, error) {
+	args := []string{"new-window", "-n", name, "-F", "#{window_id}", "-P"}
+	args = append(args, target.createArgs()...)
 	output, err := s.Command(args...).Output()
 	window := TmuxWindow{
 		Id:   sanitizeOutput(output),
@@ -207,26 +229,10 @@ func (s TmuxServer) CreateWindowBeforeOrAfterTarget(
 	return &window, err
 }
 
-func (s TmuxServer) MoveWindowBeforeOrAfterTarget(
+func (s TmuxServer) MoveWindow(
 	window *TmuxWindow,
-	target *TmuxWindow, before bool) error {
-	args := []string{"move-window", "-s", window.Id, "-t", target.Id}
-	if before {
-		args = append(args, "-b")
-	} else {
-		args = append(args, "-a")
-	}
+	target WindowTarget) error {
+	args := []string{"move-window", "-s", window.Id}
+	args = append(args, target.createArgs()...)
 	return s.Command(args...).Run()
-}
-
-func (s TmuxServer) MoveWindowBeforeTarget(
-	window TmuxWindow,
-	target TmuxWindow) error {
-	return s.Command("move-window", "-b", "-s", window.Id, "-t", target.Id).Run()
-}
-
-func (s TmuxServer) MoveWindowAfterTarget(
-	window TmuxWindow,
-	target TmuxWindow) error {
-	return s.Command("move-window", "-a", "-s", window.Id, "-t", target.Id).Run()
 }
