@@ -84,17 +84,13 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should start a new tmux session if not already started", func() {
-			proj := Project{
-				Name: CreateRandomName(),
-			}
+			proj := CreateProject()
 			session := handleProjectStart(proj.EnsureStarted(server))
 			Expect(session).To(BeStarted())
 		})
 
 		It("Should create a session with one pane", func() {
-			proj := Project{
-				Name: CreateRandomProjectName(),
-			}
+			proj := CreateProject()
 			session := handleProjectStart(proj.EnsureStarted(server))
 			panes, err2 := server.GetPanesForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
@@ -103,10 +99,8 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should start in the correct working directory", func() {
-			proj := Project{
-				Name:             CreateRandomProjectName(),
-				WorkingDirectory: dir,
-			}
+			proj := CreateProject()
+			proj.WorkingDirectory = dir
 			session := handleProjectStart(proj.EnsureStarted(server))
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
@@ -134,21 +128,14 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should return the existing session if it has been started", func() {
-			proj := Project{
-				Name: CreateRandomProjectName(),
-			}
+			proj := CreateProject()
 			s1 := handleProjectStart(proj.EnsureStarted(server))
 			s2 := handleProjectStart(proj.EnsureStarted(server))
 			Expect(s1.Id).To(Equal(s2.Id))
 		})
 
 		It("Should set the window name according to the specification", func() {
-			proj := Project{
-				Name: CreateRandomProjectName(),
-				Windows: []Window{
-					NewWindow("Window-1"),
-				},
-			}
+			proj := CreateProjectWithWindowNames("Window-1")
 			s1 := handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(s1)
 			Expect(err2).ToNot(HaveOccurred())
@@ -156,14 +143,11 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should support creating multiple windows", func() {
-			proj := Project{
-				Name: CreateRandomProjectName(),
-				Windows: []Window{
-					NewWindow("Window-1"),
-					NewWindow("Window-2"),
-					NewWindow("Window-3"),
-				},
-			}
+			proj := CreateProjectWithWindowNames(
+				"Window-1",
+				"Window-2",
+				"Window-3",
+			)
 			session := handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
@@ -175,15 +159,12 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should create missing windows when the session was already running", func() {
-			proj := Project{
-				Name: CreateRandomProjectName(),
-				Windows: []Window{
-					NewWindow("Window-1"),
-					NewWindow("Window-2"),
-				},
-			}
+			proj := CreateProjectWithWindowNames(
+				"Window-1",
+				"Window-2",
+			)
 			session := handleProjectStart(proj.EnsureStarted(server))
-			proj.Windows = append(proj.Windows, Window{Name: "Window-3"})
+			AppendNamedWindowToProject(&proj, "Window-3")
 			handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
@@ -195,21 +176,9 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should create missing windows and rearrange out-of-order windows", func() {
-			proj := Project{
-				Name: CreateRandomProjectName(),
-				Windows: []Window{
-					NewWindow("Window-4"),
-					NewWindow("Window-1"),
-					NewWindow("Window-3"),
-				},
-			}
+			proj := CreateProjectWithWindowNames("Window-4", "Window-1", "Window-3")
 			session := handleProjectStart(proj.EnsureStarted(server))
-			proj.Windows = []Window{
-				NewWindow("Window-1"),
-				NewWindow("Window-2"),
-				NewWindow("Window-3"),
-				NewWindow("Window-4"),
-			}
+			ReplaceWindowNames(&proj, "Window-1", "Window-2", "Window-3", "Window-4")
 			handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
@@ -222,18 +191,10 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should create missing windows when the session was already running", func() {
-			proj := Project{
-				Name: CreateRandomProjectName(),
-				Windows: []Window{
-					NewWindow("Window-2"),
-				},
-			}
+			proj := CreateProjectWithWindowNames("Window-2")
 			session := handleProjectStart(proj.EnsureStarted(server))
 
-			proj.Windows = []Window{
-				NewWindow("Window-1"),
-				NewWindow("Window-2"),
-			}
+			ReplaceWindowNames(&proj, "Window-1", "Window-2")
 			handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
