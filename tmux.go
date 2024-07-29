@@ -188,11 +188,11 @@ func (s TmuxServer) RenameWindow(windowId string, name string) error {
 	return s.Command("rename-window", "-t", windowId, name).Run()
 }
 
-func (s TmuxServer) createWindowBeforeOrAfterTarget(
-	target TmuxWindow,
+func (s TmuxServer) CreateWindowBeforeOrAfterTarget(
+	target *TmuxWindow,
 	name string,
 	before bool,
-) (TmuxWindow, error) {
+) (*TmuxWindow, error) {
 	args := []string{"new-window", "-t", target.Id, "-n", name, "-F", "#{window_id}", "-P"}
 	if before {
 		args = append(args, "-b")
@@ -204,21 +204,29 @@ func (s TmuxServer) createWindowBeforeOrAfterTarget(
 		Id:   sanitizeOutput(output),
 		Name: name,
 	}
-	return window, err
+	return &window, err
 }
 
-func (s TmuxServer) CreateWindowAfterTarget(
-	session TmuxSession,
-	target TmuxWindow,
-	name string,
-) (TmuxWindow, error) {
-	return s.createWindowBeforeOrAfterTarget(target, name, false)
+func (s TmuxServer) MoveWindowBeforeOrAfterTarget(
+	window *TmuxWindow,
+	target *TmuxWindow, before bool) error {
+	args := []string{"move-window", "-s", window.Id, "-t", target.Id}
+	if before {
+		args = append(args, "-b")
+	} else {
+		args = append(args, "-a")
+	}
+	return s.Command(args...).Run()
 }
 
-func (s TmuxServer) CreateWindowBeforeTarget(
-	session TmuxSession,
-	target TmuxWindow,
-	name string,
-) (TmuxWindow, error) {
-	return s.createWindowBeforeOrAfterTarget(target, name, true)
+func (s TmuxServer) MoveWindowBeforeTarget(
+	window TmuxWindow,
+	target TmuxWindow) error {
+	return s.Command("move-window", "-b", "-s", window.Id, "-t", target.Id).Run()
+}
+
+func (s TmuxServer) MoveWindowAfterTarget(
+	window TmuxWindow,
+	target TmuxWindow) error {
+	return s.Command("move-window", "-a", "-s", window.Id, "-t", target.Id).Run()
 }

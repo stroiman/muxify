@@ -20,52 +20,45 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 		return TmuxSession{}, err
 	}
 	existing, ok := TmuxSessions(sessions).FindByName(p.Name)
-	if ok {
-		tmuxWindows, err = server.GetWindowsForSession(session)
-		windowMap := make(map[Window]TmuxWindow)
-		for i, window := range p.Windows {
-			if err == nil {
-				tmuxWindow, ok := tmuxWindows.FindByName(window.Name)
-				if !ok {
-					if i == 0 {
-						target := tmuxWindows[0]
-						tmuxWindow, err = server.CreateWindowBeforeTarget(
-							session,
-							target,
-							window.Name,
-						)
-					} else {
-						target := windowMap[p.Windows[i-1]]
-						tmuxWindow, err = server.CreateWindowAfterTarget(session, target, window.Name)
-					}
-				}
-				windowMap[window] = tmuxWindow
-			}
+	if !ok {
+		if p.WorkingDirectory == "" {
+			existing, err = server.StartSessionByName(p.Name)
+		} else {
+			existing, err = server.StartSessionByNameInDir(p.Name, p.WorkingDirectory)
 		}
-		return existing, err
-	}
-
-	if p.WorkingDirectory == "" {
-		session, err = server.StartSessionByName(p.Name)
-	} else {
-		session, err = server.StartSessionByNameInDir(p.Name, p.WorkingDirectory)
+		if err == nil && len(p.Windows) > 0 {
+			err = server.RenameWindow(existing.Id, p.Windows[0].Name)
+		}
 	}
 	tmuxWindows, err = server.GetWindowsForSession(session)
-	if err != nil {
-		return TmuxSession{}, err
-	}
-	if len(p.Windows) > 0 {
-		var previousWindow = tmuxWindows[0]
-		err = server.RenameWindow(previousWindow.Id, p.Windows[0].Name)
-		for i, window := range p.Windows {
-			if i > 0 && err == nil {
-				previousWindow, err = server.CreateWindowAfterTarget(
-					session,
-					previousWindow,
-					window.Name,
-				)
-			}
+	windowMap := make(map[Window]*TmuxWindow)
+	// Map desired windows to actual running windows
+	for _, window := range p.Windows {
+		if tmuxWindow, ok := tmuxWindows.FindByName(window.Name); ok {
+			windowMap[window] = &tmuxWindow
 		}
 	}
-	return session, err
+	// Ensure desired windows are in right position
+	for i, window := range p.Windows {
+		tmuxWindow := windowMap[window]
+		var target *TmuxWindow
+		var before bool
+		if i == 0 {
+			target = &tmuxWindows[0]
+			before = true
+		} else {
+			target = windowMap[p.Windows[i-1]]
+			before = false
+		}
+		if tmuxWindow == nil {
+			windowMap[window], err = server.CreateWindowBeforeOrAfterTarget(
+				target,
+				window.Name,
+				before,
+			)
+		} else {
+			err = server.MoveWindowBeforeOrAfterTarget(tmuxWindow, target, before)
+		}
+	}
+	return existing, err
 }

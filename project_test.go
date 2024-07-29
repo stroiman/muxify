@@ -194,6 +194,33 @@ var _ = Describe("Project", Ordered, func() {
 			))
 		})
 
+		It("Should create missing windows and rearrange out-of-order windows", func() {
+			proj := Project{
+				Name: CreateRandomProjectName(),
+				Windows: []Window{
+					{Name: "Window-4"},
+					{Name: "Window-1"},
+					{Name: "Window-3"},
+				},
+			}
+			session := handleProjectStart(proj.EnsureStarted(server))
+			proj.Windows = []Window{
+				{Name: "Window-1"},
+				{Name: "Window-2"},
+				{Name: "Window-3"},
+				{Name: "Window-4"},
+			}
+			handleProjectStart(proj.EnsureStarted(server))
+			windows, err2 := server.GetWindowsForSession(session)
+			Expect(err2).ToNot(HaveOccurred())
+			Expect(windows).To(HaveExactElements(
+				HaveField("Name", "Window-1"),
+				HaveField("Name", "Window-2"),
+				HaveField("Name", "Window-3"),
+				HaveField("Name", "Window-4"),
+			))
+		})
+
 		It("Should create missing windows when the session was already running", func() {
 			proj := Project{
 				Name: CreateRandomProjectName(),
