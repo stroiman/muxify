@@ -164,7 +164,7 @@ var _ = Describe("Project", Ordered, func() {
 				"Window-2",
 			)
 			session := handleProjectStart(proj.EnsureStarted(server))
-			AppendNamedWindowToProject(&proj, "Window-3")
+			proj.AppendNamedWindow("Window-3")
 			handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
@@ -178,7 +178,7 @@ var _ = Describe("Project", Ordered, func() {
 		It("Should create missing windows and rearrange out-of-order windows", func() {
 			proj := CreateProjectWithWindowNames("Window-4", "Window-1", "Window-3")
 			session := handleProjectStart(proj.EnsureStarted(server))
-			ReplaceWindowNames(&proj, "Window-1", "Window-2", "Window-3", "Window-4")
+			proj.ReplaceWindowNames("Window-1", "Window-2", "Window-3", "Window-4")
 			handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())
@@ -193,8 +193,7 @@ var _ = Describe("Project", Ordered, func() {
 		It("Should create missing windows when the session was already running", func() {
 			proj := CreateProjectWithWindowNames("Window-2")
 			session := handleProjectStart(proj.EnsureStarted(server))
-
-			ReplaceWindowNames(&proj, "Window-1", "Window-2")
+			proj.ReplaceWindowNames("Window-1", "Window-2")
 			handleProjectStart(proj.EnsureStarted(server))
 			windows, err2 := server.GetWindowsForSession(session)
 			Expect(err2).ToNot(HaveOccurred())

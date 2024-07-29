@@ -4,31 +4,35 @@ import (
 	. "github.com/stroiman/muxify"
 )
 
-func CreateProject() Project {
-	return Project{
-		Name: CreateRandomName(),
+type TestProject struct{ Project }
+
+func CreateProject() TestProject {
+	return TestProject{
+		Project{
+			Name: CreateRandomName(),
+		},
 	}
 }
 
-func CreateProjectWithWindowNames(windowNames ...string) Project {
+func CreateProjectWithWindowNames(windowNames ...string) *TestProject {
 	windows := make([]Window, len(windowNames))
 	for i, name := range windowNames {
 		windows[i] = NewWindow(name)
 	}
-	return Project{
+	return &TestProject{Project{
 		Name:    CreateRandomProjectName(),
 		Windows: windows,
-	}
+	}}
 }
 
-func AppendNamedWindowToProject(proj *Project, windowName string) {
-	proj.Windows = append(proj.Windows, Window{Name: "Window-3"})
+func (p *TestProject) AppendNamedWindow(windowName string) {
+	p.Project.Windows = append(p.Project.Windows, Window{Name: "Window-3"})
 }
 
-func ReplaceWindowNames(proj *Project, windowNames ...string) {
+func (p *TestProject) ReplaceWindowNames(windowNames ...string) {
 	windows := make([]Window, len(windowNames))
 	for i, name := range windowNames {
 		windows[i] = NewWindow(name)
 	}
-	proj.Windows = windows
+	p.Project.Windows = windows
 }
