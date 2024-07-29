@@ -10,6 +10,21 @@ type Window struct {
 	Name string
 }
 
+func startSessionAndSetFirstWindowName(
+	server TmuxServer,
+	project Project,
+) (session TmuxSession, err error) {
+	if project.WorkingDirectory == "" {
+		session, err = server.StartSessionByName(project.Name)
+	} else {
+		session, err = server.StartSessionByNameInDir(project.Name, project.WorkingDirectory)
+	}
+	if err == nil && len(project.Windows) > 0 {
+		err = server.RenameWindow(session.Id, project.Windows[0].Name)
+	}
+	return
+}
+
 func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	var (
 		session     TmuxSession
@@ -19,20 +34,12 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	if err != nil {
 		return TmuxSession{}, err
 	}
-	existing, ok := TmuxSessions(sessions).FindByName(p.Name)
+	session, ok := TmuxSessions(sessions).FindByName(p.Name)
 	if !ok {
-		if p.WorkingDirectory == "" {
-			existing, err = server.StartSessionByName(p.Name)
-		} else {
-			existing, err = server.StartSessionByNameInDir(p.Name, p.WorkingDirectory)
-		}
-		if err == nil && len(p.Windows) > 0 {
-			err = server.RenameWindow(existing.Id, p.Windows[0].Name)
-		}
+		session, err = startSessionAndSetFirstWindowName(server, p)
 	}
 	tmuxWindows, err = server.GetWindowsForSession(session)
 	windowMap := make(map[Window]*TmuxWindow)
-	// Map desired windows to actual running windows
 	for _, window := range p.Windows {
 		if tmuxWindow, ok := tmuxWindows.FindByName(window.Name); ok {
 			windowMap[window] = &tmuxWindow
@@ -60,5 +67,5 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 			err = server.MoveWindowBeforeOrAfterTarget(tmuxWindow, target, before)
 		}
 	}
-	return existing, err
+	return session, err
 }
