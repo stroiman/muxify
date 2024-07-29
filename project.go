@@ -11,7 +11,12 @@ type Project struct {
 type WindowId = uuid.UUID
 
 type Window struct {
-	Id   WindowId
+	Id    WindowId
+	Name  string
+	Panes []Pane
+}
+
+type Pane struct {
 	Name string
 }
 

@@ -6,23 +6,25 @@ import (
 
 type TestProject struct{ Project }
 
-func CreateProject() TestProject {
-	return TestProject{
+func CreateProjectWithWindows(windows ...Window) *TestProject {
+	return &TestProject{
 		Project{
-			Name: CreateRandomName(),
+			Name:    CreateRandomName(),
+			Windows: windows,
 		},
 	}
 }
+
+// Just an alias to hide the fact that creating an empty project is just
+// the same as not supplying any variables arguments
+var CreateProject = CreateProjectWithWindows
 
 func CreateProjectWithWindowNames(windowNames ...string) *TestProject {
 	windows := make([]Window, len(windowNames))
 	for i, name := range windowNames {
 		windows[i] = NewWindow(name)
 	}
-	return &TestProject{Project{
-		Name:    CreateRandomProjectName(),
-		Windows: windows,
-	}}
+	return CreateProjectWithWindows(windows...)
 }
 
 func (p *TestProject) AppendNamedWindow(windowName string) {
