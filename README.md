@@ -142,8 +142,15 @@ this is tested.
 Fixed optimising testing as well as isolate the tests from the user's
 environment.
 
-### [July 16th 2024 - Isolate test from dev env, and sync in control mode](https://github.com/stroiman/muxify/blob/main/devlog/Part4.md)
+### [July 22nd 2024 - Isolate test from dev env, and sync in control mode](https://github.com/stroiman/muxify/blob/main/devlog/Part4.md)
 
-Fixed optimising testing as well as isolate the tests from the user's
-environment.
+Basic control of window configuration, and restore missing windows when
+re-launching a session, but was left with an erratic test.
+
+### [July 29th 2024 - Start multiple panes in each window](https://github.com/stroiman/muxify/blob/main/devlog/Part5.md)
+
+Reorganise windows, massive refactoring, and adding support to start know will
+need to change. Added the ability to start multiple panes.
+
+
 
