@@ -19,6 +19,11 @@ are tests in focus, or visual feedback for UI development
 The tool should support different layouts, and quickly switch between them
 without killing the running tasks.
 
+The need for this tool arose during my last larger project, where I needed to
+work on 3 different front-ends, catering for 3 different user roles. One
+backend, and two modules with shared code; All needed to be started
+individually; and all with their own test suites.
+
 ## General idea
 
 You define 3 different concepts
