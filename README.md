@@ -19,24 +19,45 @@ are tests in focus, or visual feedback for UI development
 The tool should support different layouts, and quickly switch between them
 without killing the running tasks.
 
-The need for this tool arose during my last larger project, where I needed to
-work on 3 different front-ends, catering for 3 different user roles. One
-backend, and two modules with shared code; All needed to be started
-individually; and all with their own test suites.
+### Why this tool?
+
+The need for this tool arose during my last larger project, where the code base
+consisted of individual modules for on 3 different front-ends, catering for 3
+different user roles. One common backend, and two modules with shared code; All
+needed to be started individually; and all with their own test suites.
+
+I had first used tmuxinator, but it just didn't work - and went on to use
+tmux-resurrect. But now I kept all those processes alive when working on
+something else; just to avoid having to recreate the setup every time I would
+launch the project.
+
+And neither of the tools helped me arrange stuff on multiple monitors; or adapt
+the layout depending on the task I was working on.
 
 ## General idea
 
 You define 3 different concepts
 
 - Project - a larger project you work on.
-- Task - a "program" that needs to run while working on the project. E.g.
+- Task - a process that needs to run while working on the project. E.g.
   - An editor in the terminal
   - Development web server
   - Compiler running in watch mode, e.g. for TypeScript, `tsc -w`
-  - A test runner running in watch mode
+  - A test runner in watch mode
 - A layout
   - A configuration for the different tasks, and how they are organised in
     sessions, windows, and panes.
+
+### Possible future idea
+
+While learning about tmux, I realised that you can attach to a "command mode";
+that can receive events in stdin. This could allow you to make tools that react
+to, e.g. test-output. This could allow you to have the test runner hidden, but
+have a desktop notification on 
+
+This is an idea that arose when I realised the technical possibility exists. But
+it is very low priority. But the use case itself is so useful that I want to
+investigate this when I get further.
 
 ## Choice of programming language
 
