@@ -78,7 +78,8 @@ func ensureWindowHasPanes(
 			}
 			targetId = paneId
 		}
-		tmuxPane := TmuxPane{TmuxTarget{server, targetId}}
+		// TODO: Don't create this type here
+		tmuxPane := TmuxPane{TmuxTarget{server, targetId}, pane.Name}
 		var err error = nil
 		for _, command := range pane.Commands {
 			if err == nil {

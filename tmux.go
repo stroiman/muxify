@@ -25,6 +25,7 @@ type TmuxSession struct {
 
 type TmuxPane struct {
 	TmuxTarget
+	Title string
 }
 
 type TmuxWindow struct {
@@ -181,18 +182,19 @@ func (s TmuxSessions) FindByName(name string) (session TmuxSession, ok bool) {
 
 func (s TmuxTarget) GetPanes() (panes []TmuxPane, err error) {
 	var output []byte
-	output, err = s.Command("list-panes", "-t", s.Id, "-F", "#{pane_id}").Output()
+	output, err = s.Command("list-panes", "-t", s.Id, "-F", `"#{pane_id}":"#{pane_title}"`).Output()
 	if err != nil {
 		return
 	}
-	lines := getLines(output)
+	lines, err := parseLinesQuoted(output)
 	panes = make([]TmuxPane, len(lines))
 	for i, l := range lines {
 		panes[i] = TmuxPane{
 			TmuxTarget{
 				s.TmuxServer,
-				l,
+				l[0],
 			},
+			l[1],
 		}
 	}
 	return
