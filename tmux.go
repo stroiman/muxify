@@ -67,8 +67,7 @@ func getLines(output []byte) []string {
 	return RemoveEmptyLines(strings.Split(string(output), "\n"))
 }
 
-// TODO: Rename to KillServer
-func (s TmuxServer) Kill() error {
+func (s TmuxServer) KillServer() error {
 	return s.Command("kill-server").Run()
 }
 

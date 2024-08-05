@@ -32,7 +32,7 @@ var _ = Describe("Project", Ordered, func() {
 		DeferCleanup(func() {
 			// kill-server will return an error if no server is running. So if it
 			// does not return an error, some test did not clean up correctly
-			Expect(server.Kill()).ToNot(Succeed())
+			Expect(server.KillServer()).ToNot(Succeed())
 		})
 	})
 
