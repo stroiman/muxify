@@ -116,7 +116,7 @@ var _ = Describe("Project", Ordered, func() {
 		It("Should create a session with one pane", func() {
 			proj := CreateProject()
 			session := handleProjectStart(proj.EnsureStarted(server))
-			panes, err2 := server.GetPanesForSession(session)
+			panes, err2 := session.GetPanes()
 			Expect(err2).ToNot(HaveOccurred())
 
 			Expect(panes).To(HaveExactElements(HaveField("Id", MatchRegexp("^\\%\\d+$"))))
@@ -239,7 +239,7 @@ var _ = Describe("Project", Ordered, func() {
 			session := handleProjectStart(proj.EnsureStarted(server))
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
-			panes, err := server.GetPanesForSession(session)
+			panes, err := session.GetPanes()
 			Expect(err).ToNot(HaveOccurred())
 			panes[0].MustRunShellCommand("echo \"DONE 1\"")
 			outputEvents := getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout)))
