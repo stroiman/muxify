@@ -1,6 +1,8 @@
 package muxify
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type Command = string
 
@@ -25,7 +27,8 @@ type Window struct {
 }
 
 type Pane struct {
-	Name string
+	Name     string
+	Commands []string
 }
 
 func NewWindow(name string) Window {
@@ -56,13 +59,15 @@ func ensureWindowHasPanes(
 	configuredWindow Window,
 ) error {
 	for i, pane := range configuredWindow.Panes {
+		var targetId string
 		if i == 0 {
 			err := server.Command("select-pane", "-t", window.Id, "-T", pane.Name).Run()
 			if err != nil {
 				return err
 			}
+			targetId = window.Id
 		} else {
-			output, err := server.Command("split-window", "-t", window.Id, "-P", "-F", "#{pane_id").Output()
+			output, err := server.Command("split-window", "-t", window.Id, "-P", "-F", "#{pane_id}").Output()
 			if err != nil {
 				return err
 			}
@@ -70,6 +75,14 @@ func ensureWindowHasPanes(
 			err = server.Command("select-pane", "-t", paneId, "-T", pane.Name).Run()
 			if err != nil {
 				return err
+			}
+			targetId = paneId
+		}
+		tmuxPane := TmuxPane{TmuxTarget{server, targetId}}
+		var err error = nil
+		for _, command := range pane.Commands {
+			if err == nil {
+				err = tmuxPane.RunShellCommand(command)
 			}
 		}
 	}

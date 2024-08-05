@@ -66,12 +66,24 @@ func getLines(output []byte) []string {
 	return removeEmptyLines(strings.Split(string(output), "\n"))
 }
 
+// TODO: Rename to KillServer
 func (s TmuxServer) Kill() error {
 	return s.Command("kill-server").Run()
 }
 
-func (s TmuxServer) Command(arg ...string) *exec.Cmd {
+type CmdExt struct {
+	*exec.Cmd
+}
 
+func (c CmdExt) MustOutput() []byte {
+	o, err := c.Output()
+	if err != nil {
+		panic(err)
+	}
+	return o
+}
+
+func (s TmuxServer) Command(arg ...string) CmdExt {
 	c := make([]string, 0)
 	if s.ControlMode {
 		c = append(c, "-C")
@@ -83,8 +95,8 @@ func (s TmuxServer) Command(arg ...string) *exec.Cmd {
 		c = append(c, "-f", s.ConfigFile)
 	}
 	c = append(c, arg...)
-
-	return exec.Command("tmux", c...)
+	cmd := exec.Command("tmux", c...)
+	return CmdExt{cmd}
 }
 
 func (server TmuxServer) StartSession(name string, arg ...string) (TmuxSession, error) {

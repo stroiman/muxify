@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -218,6 +219,22 @@ var _ = Describe("Project", Ordered, func() {
 			result, err := server.GetWindowAndPaneNames()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(HaveExactElements(expected))
+		})
+
+		It("Should execute the commands defined in the pane configuration", func() {
+			proj := CreateProjectWithWindows(
+				CreateWindowWithPanes("Window-1",
+					CreatePaneWithCommands("Pane-1", "echo \"Foo\""),
+					CreatePaneWithCommands("Pane-2", "echo \"Bar\""),
+				))
+			session := handleProjectStart(proj.EnsureStarted(server))
+			time.Sleep(time.Second)
+			panes, err := server.GetPanesForSession(session)
+			Expect(err).ToNot(HaveOccurred())
+			output1 := server.Command("capture-pane", "-p", "-t", panes[0].Id).MustOutput()
+			output2 := server.Command("capture-pane", "-p", "-t", panes[1].Id).MustOutput()
+			Expect(output1).To(MatchRegexp("(?m:^Foo$)"))
+			Expect(output2).To(MatchRegexp("(?m:^Bar$)"))
 		})
 
 		It("Should support custom working folder and environment for each window", func() {

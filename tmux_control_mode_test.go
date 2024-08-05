@@ -35,7 +35,7 @@ type TmuxControl struct {
 
 func StartControlMode(server TmuxServer, session TmuxSession) (result TmuxControl, err error) {
 	server.ControlMode = true
-	result.cmd = server.Command("attach", "-t", session.Id)
+	result.cmd = server.Command("attach", "-t", session.Id).Cmd
 	result.stdout, err = result.cmd.StdoutPipe()
 	if err != nil {
 		return

@@ -43,8 +43,19 @@ func CreateWindowWithPaneNames(windowName string, paneNames ...string) Window {
 	window := NewWindow(windowName)
 	panes := make([]Pane, len(paneNames))
 	for i, name := range paneNames {
-		panes[i] = Pane{name}
+		panes[i] = Pane{name, nil}
 	}
+	window.Panes = panes
+	return window
+}
+
+func CreatePaneWithCommands(paneName string, commands ...string) Pane {
+	pane := Pane{paneName, commands}
+	return pane
+}
+
+func CreateWindowWithPanes(windowName string, panes ...Pane) Window {
+	window := NewWindow(windowName)
 	window.Panes = panes
 	return window
 }
