@@ -27,8 +27,23 @@ func CreateProjectWithWindowNames(windowNames ...string) *TestProject {
 	return CreateProjectWithWindows(windows...)
 }
 
-func (p *TestProject) AppendNamedWindow(windowName string) {
-	p.Project.Windows = append(p.Project.Windows, Window{Name: "Window-3"})
+type TestWindow struct {
+	*TestProject
+	*Window
+}
+
+func (p *TestProject) AppendNamedWindow(windowName string) *TestWindow {
+	p.Project.Windows = append(p.Project.Windows, NewWindow(windowName))
+	windows := p.Project.Windows
+	return &TestWindow{
+		p,
+		&windows[len(windows)-1],
+	}
+}
+
+func (w *TestWindow) AppendPane(pane Pane) *TestWindow {
+	w.Panes = append(w.Panes, pane)
+	return w
 }
 
 func (p *TestProject) ReplaceWindowNames(windowNames ...string) {
@@ -39,17 +54,7 @@ func (p *TestProject) ReplaceWindowNames(windowNames ...string) {
 	p.Project.Windows = windows
 }
 
-func CreateWindowWithPaneNames(windowName string, paneNames ...string) Window {
-	window := NewWindow(windowName)
-	panes := make([]Pane, len(paneNames))
-	for i, name := range paneNames {
-		panes[i] = Pane{name, nil}
-	}
-	window.Panes = panes
-	return window
-}
-
-func CreatePaneWithCommands(paneName string, commands ...string) Pane {
+func (s *TestProject) CreatePaneWithCommands(paneName string, commands ...string) Pane {
 	pane := Pane{paneName, commands}
 	return pane
 }

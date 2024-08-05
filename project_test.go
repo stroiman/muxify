@@ -214,10 +214,13 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should create the panes with the correct names", func() {
-			proj := CreateProjectWithWindows(
-				CreateWindowWithPaneNames("Window-1", "Pane-1", "Pane-2"),
-				CreateWindowWithPaneNames("Window-2", "Pane-3", "Pane-4"),
-			)
+			proj := CreateProject()
+			proj.AppendNamedWindow("Window-1").
+				AppendPane(proj.CreatePaneWithCommands("Pane-1")).
+				AppendPane(proj.CreatePaneWithCommands("Pane-2"))
+			proj.AppendNamedWindow("Window-2").
+				AppendPane(proj.CreatePaneWithCommands("Pane-3")).
+				AppendPane(proj.CreatePaneWithCommands("Pane-4"))
 			handleProjectStart(proj.EnsureStarted(server))
 			expected := []T{
 				{"Window-1", "Pane-1"},
@@ -231,10 +234,13 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should not add more panes when re-launching", func() {
-			proj := CreateProjectWithWindows(
-				CreateWindowWithPaneNames("Window-1", "Pane-1", "Pane-2"),
-				CreateWindowWithPaneNames("Window-2", "Pane-3", "Pane-4"),
-			)
+			proj := CreateProject()
+			proj.AppendNamedWindow("Window-1").
+				AppendPane(proj.CreatePaneWithCommands("Pane-1")).
+				AppendPane(proj.CreatePaneWithCommands("Pane-2"))
+			proj.AppendNamedWindow("Window-2").
+				AppendPane(proj.CreatePaneWithCommands("Pane-3")).
+				AppendPane(proj.CreatePaneWithCommands("Pane-4"))
 			handleProjectStart(proj.EnsureStarted(server))
 			handleProjectStart(proj.EnsureStarted(server))
 
@@ -250,11 +256,10 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should execute the commands defined in the pane configuration", func() {
-			proj := CreateProjectWithWindows(
-				CreateWindowWithPanes("Window-1",
-					CreatePaneWithCommands("Pane-1", "echo \"Foo\""),
-					CreatePaneWithCommands("Pane-2", "echo \"Bar\""),
-				))
+			proj := CreateProject()
+			proj.AppendNamedWindow("Window-1").
+				AppendPane(proj.CreatePaneWithCommands("Pane-1", "echo \"Foo\"")).
+				AppendPane(proj.CreatePaneWithCommands("Pane-2", "echo \"Bar\""))
 			session := handleProjectStart(proj.EnsureStarted(server))
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
@@ -272,11 +277,10 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		It("Should not run the first pane's command twice on second startup", func() {
-			proj := CreateProjectWithWindows(
-				CreateWindowWithPanes("Window-1",
-					CreatePaneWithCommands("Pane-1", "echo \"Foo\""),
-					CreatePaneWithCommands("Pane-2", "echo \"Bar\""),
-				))
+			proj := CreateProject()
+			proj.AppendNamedWindow("Window-1").
+				AppendPane(proj.CreatePaneWithCommands("Pane-1", "echo \"Foo\"")).
+				AppendPane(proj.CreatePaneWithCommands("Pane-2", "echo \"Bar\""))
 			session := handleProjectStart(proj.EnsureStarted(server))
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
