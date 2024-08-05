@@ -2,10 +2,18 @@ package muxify
 
 import "github.com/google/uuid"
 
+type Command = string
+
+type Task struct {
+	Name     string // must be unique
+	Commands Command
+}
+
 type Project struct {
-	Name             string
+	Name             string // must be unique
 	WorkingDirectory string
 	Windows          []Window
+	Tasks            []Task
 }
 
 type WindowId = uuid.UUID

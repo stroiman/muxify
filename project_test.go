@@ -119,7 +119,7 @@ var _ = Describe("Project", Ordered, func() {
 			}()
 
 			Expect(
-				server.Command("send-keys", "-t", session.Id, "echo $PWD-END\n").Run(),
+				session.RunShellCommand("echo $PWD-END"),
 			).To(Succeed())
 			Eventually(
 				getOutputEvents(GetLines(cm.stdout)),

@@ -7,7 +7,14 @@ import (
 	"strings"
 )
 
+type TmuxServer struct {
+	ControlMode bool
+	SocketName  string
+	ConfigFile  string
+}
+
 type TmuxSession struct {
+	TmuxServer
 	Id   string
 	Name string
 }
@@ -55,12 +62,6 @@ func getLines(output []byte) []string {
 	return removeEmptyLines(strings.Split(string(output), "\n"))
 }
 
-type TmuxServer struct {
-	ControlMode bool
-	SocketName  string
-	ConfigFile  string
-}
-
 func (s TmuxServer) Kill() error {
 	return s.Command("kill-server").Run()
 }
@@ -89,8 +90,9 @@ func (server TmuxServer) StartSession(name string, arg ...string) (TmuxSession, 
 		return TmuxSession{}, err
 	} else {
 		return TmuxSession{
-			Id:   sanitizeOutput(out),
-			Name: name,
+			server,
+			sanitizeOutput(out),
+			name,
 		}, nil
 	}
 }
@@ -132,8 +134,11 @@ func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
 	lines, err := parseLinesQuoted(stdOut)
 	result := make([]TmuxSession, len(lines))
 	for i, line := range lines {
-		result[i].Id = line[0]
-		result[i].Name = line[1]
+		result[i] = TmuxSession{
+			s,
+			line[0],
+			line[1],
+		}
 	}
 	return result, err
 }
@@ -259,4 +264,8 @@ func (s TmuxServer) GetWindowAndPaneNames() ([]T, error) {
 		result[i] = T{parts[0], parts[1]}
 	}
 	return result, nil
+}
+
+func (s TmuxSession) RunShellCommand(shellCommand string) error {
+	return s.Command("send-keys", "-t", s.Id, shellCommand+"\n").Run()
 }
