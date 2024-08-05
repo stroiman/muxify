@@ -52,7 +52,7 @@ func sanitizeOutput(output []byte) string {
 	return strings.Trim(string(output), "\n")
 }
 
-func removeEmptyLines(lines []string) []string {
+func RemoveEmptyLines(lines []string) []string {
 	result := make([]string, 0, len(lines))
 	for _, line := range lines {
 		if line != "" {
@@ -63,7 +63,7 @@ func removeEmptyLines(lines []string) []string {
 }
 
 func getLines(output []byte) []string {
-	return removeEmptyLines(strings.Split(string(output), "\n"))
+	return RemoveEmptyLines(strings.Split(string(output), "\n"))
 }
 
 // TODO: Rename to KillServer

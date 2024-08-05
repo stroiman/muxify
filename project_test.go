@@ -1,9 +1,9 @@
 package muxify_test
 
 import (
-	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -49,19 +49,43 @@ var _ = Describe("Project", Ordered, func() {
 
 	var getOutputEvents = func(lines <-chan string) <-chan TmuxOutputEvent {
 		c := make(chan TmuxOutputEvent)
-		r := regexp.MustCompile("^\\%output ([^ ]+) (.*)-END")
+		r := regexp.MustCompile("^\\%output ([^ ]+) (.*)")
 		go func() {
 			for line := range lines {
 				m := r.FindStringSubmatch(line)
 				if m != nil {
 					event := TmuxOutputEvent{
 						PaneId: m[1],
-						Data:   removeControlCharacters(m[2]),
+						Data:   m[2],
 					}
 					c <- event
 				}
 			}
 			close(c)
+		}()
+		return c
+	}
+
+	var getOutputLinesFromEvents = func(events <-chan TmuxOutputEvent) <-chan string {
+		c := make(chan string)
+		go func() {
+			defer close(c)
+			var buffer string
+			for event := range events {
+				buffer = buffer + event.Data
+				lines := strings.Split(buffer, "\\015\\012")
+				for i, line := range lines {
+					if i == len(lines)-1 {
+						buffer = line
+					} else {
+						c <- line
+					}
+				}
+			}
+			lines := RemoveEmptyLines(strings.Split(buffer, "\\015\\012"))
+			for _, line := range lines {
+				c <- line
+			}
 		}()
 		return c
 	}
@@ -105,27 +129,13 @@ var _ = Describe("Project", Ordered, func() {
 			session := handleProjectStart(proj.EnsureStarted(server))
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
-			success := false
-
-			defer func() {
-				if !success {
-					output, err := server.Command("capture-pane", "-p", "-t", session.Id).Output()
-					if err != nil {
-						fmt.Println("Error getting target pane", err)
-					} else {
-						fmt.Println("TARGET PANE OUTPUT")
-						fmt.Println(string(output))
-					}
-				}
-			}()
 
 			Expect(
-				session.RunShellCommand("echo $PWD-END"),
+				session.RunShellCommand("echo $PWD"),
 			).To(Succeed())
 			Eventually(
-				getOutputEvents(GetLines(cm.stdout)),
-			).Should(Receive(HaveField("Data", Equal(dir))))
-			success = true
+				getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout))),
+			).Should(Receive(Equal(dir)))
 		})
 
 		It("Should return the existing session if it has been started", func() {
