@@ -13,18 +13,22 @@ type TmuxServer struct {
 	ConfigFile  string
 }
 
-type TmuxSession struct {
+type TmuxTarget struct {
 	TmuxServer
-	Id   string
+	Id string
+}
+
+type TmuxSession struct {
+	TmuxTarget
 	Name string
 }
 
 type TmuxPane struct {
-	Id string
+	TmuxTarget
 }
 
 type TmuxWindow struct {
-	Id   string
+	TmuxTarget
 	Name string
 }
 
@@ -90,8 +94,10 @@ func (server TmuxServer) StartSession(name string, arg ...string) (TmuxSession, 
 		return TmuxSession{}, err
 	} else {
 		return TmuxSession{
-			server,
-			sanitizeOutput(out),
+			TmuxTarget{
+				server,
+				sanitizeOutput(out),
+			},
 			name,
 		}, nil
 	}
@@ -135,8 +141,10 @@ func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
 	result := make([]TmuxSession, len(lines))
 	for i, line := range lines {
 		result[i] = TmuxSession{
-			s,
-			line[0],
+			TmuxTarget{
+				s,
+				line[0],
+			},
 			line[1],
 		}
 	}
@@ -168,7 +176,12 @@ func (s TmuxServer) GetPanesForSession(session TmuxSession) (panes []TmuxPane, e
 	lines := getLines(output)
 	panes = make([]TmuxPane, len(lines))
 	for i, l := range lines {
-		panes[i] = TmuxPane{Id: l}
+		panes[i] = TmuxPane{
+			TmuxTarget{
+				s,
+				l,
+			},
+		}
 	}
 	return
 }
@@ -228,8 +241,11 @@ func (s TmuxServer) CreateWindow(
 	args = append(args, target.createArgs()...)
 	output, err := s.Command(args...).Output()
 	window := TmuxWindow{
-		Id:   sanitizeOutput(output),
-		Name: name,
+		TmuxTarget{
+			s,
+			sanitizeOutput(output),
+		},
+		name,
 	}
 	return &window, err
 }
@@ -266,6 +282,6 @@ func (s TmuxServer) GetWindowAndPaneNames() ([]T, error) {
 	return result, nil
 }
 
-func (s TmuxSession) RunShellCommand(shellCommand string) error {
+func (s TmuxTarget) RunShellCommand(shellCommand string) error {
 	return s.Command("send-keys", "-t", s.Id, shellCommand+"\n").Run()
 }
