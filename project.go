@@ -54,7 +54,7 @@ func startSessionAndSetFirstWindowName(
 }
 
 func ensureWindowHasPanes(
-	server TmuxServer,
+
 	window *TmuxWindow,
 	configuredWindow Window,
 ) error {
@@ -136,7 +136,7 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 		} else {
 			err = server.MoveWindow(existingWindow, windowTarget)
 		}
-		ensureWindowHasPanes(server, existingWindow, configuredWindow)
+		ensureWindowHasPanes(existingWindow, configuredWindow)
 	}
 	return session, err
 }
