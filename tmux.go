@@ -180,7 +180,18 @@ func (s TmuxSessions) FindByName(name string) (session TmuxSession, ok bool) {
 	return TmuxSession{}, false
 }
 
-func (s TmuxTarget) GetPanes() (panes []TmuxPane, err error) {
+type TmuxPanes []TmuxPane
+
+func (p TmuxPanes) FindByTitle(title string) *TmuxPane {
+	for _, pane := range p {
+		if pane.Title == title {
+			return &pane
+		}
+	}
+	return nil
+}
+
+func (s TmuxTarget) GetPanes() (panes TmuxPanes, err error) {
 	var output []byte
 	output, err = s.Command("list-panes", "-t", s.Id, "-F", `"#{pane_id}":"#{pane_title}"`).Output()
 	if err != nil {
@@ -210,8 +221,7 @@ func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows TmuxWindo
 	lines, err := parseLinesQuoted(output)
 	windows = make([]TmuxWindow, len(lines))
 	for i, line := range lines {
-		windows[i].Id = line[0]
-		windows[i].Name = line[1]
+		windows[i] = TmuxWindow{TmuxTarget{s, line[0]}, line[1]}
 	}
 	return
 }

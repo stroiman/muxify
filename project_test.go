@@ -230,6 +230,25 @@ var _ = Describe("Project", Ordered, func() {
 			Expect(result).To(HaveExactElements(expected))
 		})
 
+		It("Should not add more panes when re-launching", func() {
+			proj := CreateProjectWithWindows(
+				CreateWindowWithPaneNames("Window-1", "Pane-1", "Pane-2"),
+				CreateWindowWithPaneNames("Window-2", "Pane-3", "Pane-4"),
+			)
+			handleProjectStart(proj.EnsureStarted(server))
+			handleProjectStart(proj.EnsureStarted(server))
+
+			expected := []T{
+				{"Window-1", "Pane-1"},
+				{"Window-1", "Pane-2"},
+				{"Window-2", "Pane-3"},
+				{"Window-2", "Pane-4"},
+			}
+			result, err := server.GetWindowAndPaneNames()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(HaveExactElements(expected))
+		})
+
 		It("Should execute the commands defined in the pane configuration", func() {
 			proj := CreateProjectWithWindows(
 				CreateWindowWithPanes("Window-1",
@@ -239,10 +258,10 @@ var _ = Describe("Project", Ordered, func() {
 			session := handleProjectStart(proj.EnsureStarted(server))
 			cm := MustStartControlMode(server, session)
 			defer cm.MustClose()
+			outputEvents := getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout)))
 			panes, err := session.GetPanes()
 			Expect(err).ToNot(HaveOccurred())
 			panes[0].MustRunShellCommand("echo \"DONE 1\"")
-			outputEvents := getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout)))
 			Eventually(outputEvents).Should(Receive(Equal("DONE 1")))
 			panes[1].MustRunShellCommand("echo \"DONE 2\"")
 			Eventually(outputEvents).Should(Receive(Equal("DONE 2")))
@@ -252,13 +271,40 @@ var _ = Describe("Project", Ordered, func() {
 			Expect(output2).To(MatchRegexp("(?m:^Bar$)"))
 		})
 
-		It("Should not run the first pane's command twice on second startup", Pending, func() {
-			// When tmux starts, a window and a pane is created. Everything else is
-			// created by this tool.
-			// That also means that the first window and the first pane receives
-			// special handling.
-			// This tests makes sure that the special handling doesn't run the command
-			// twice when relaunching a project.
+		It("Should not run the first pane's command twice on second startup", func() {
+			proj := CreateProjectWithWindows(
+				CreateWindowWithPanes("Window-1",
+					CreatePaneWithCommands("Pane-1", "echo \"Foo\""),
+					CreatePaneWithCommands("Pane-2", "echo \"Bar\""),
+				))
+			session := handleProjectStart(proj.EnsureStarted(server))
+			cm := MustStartControlMode(server, session)
+			defer cm.MustClose()
+			outputEvents := getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout)))
+			panes, err := session.GetPanes()
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the commands to have executed
+			panes[0].MustRunShellCommand("echo \"DONE 1\"")
+			Eventually(outputEvents).Should(Receive(Equal("DONE 1")))
+
+			// Start this again
+			handleProjectStart(proj.EnsureStarted(server))
+
+			// Wait for all commands to have executed
+			panes[0].MustRunShellCommand("echo \"DONE 1\"")
+			Eventually(outputEvents).Should(Receive(Equal("DONE 1")))
+
+			panes, err = session.GetPanes()
+			Expect(err).ToNot(HaveOccurred())
+
+			output1 := server.Command("capture-pane", "-p", "-t", panes[0].Id).MustOutput()
+			output2 := server.Command("capture-pane", "-p", "-t", panes[1].Id).MustOutput()
+
+			var exp *regexp.Regexp = regexp.MustCompile(`(?m:^(?:Foo|Bar))`)
+			Expect(exp.FindAllString(string(output1), -1)).To(Equal([]string{"Foo"}))
+			Expect(exp.FindAllString(string(output2), -1)).To(Equal([]string{"Bar"}))
+
 		})
 	})
 })
