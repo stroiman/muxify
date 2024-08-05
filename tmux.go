@@ -297,3 +297,13 @@ func (s TmuxServer) GetWindowAndPaneNames() ([]T, error) {
 func (s TmuxTarget) RunShellCommand(shellCommand string) error {
 	return s.Command("send-keys", "-t", s.Id, shellCommand+"\n").Run()
 }
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (s TmuxTarget) MustRunShellCommand(shellCommand string) {
+	must(s.RunShellCommand(shellCommand))
+}

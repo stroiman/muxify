@@ -4,7 +4,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -51,6 +50,7 @@ var _ = Describe("Project", Ordered, func() {
 		c := make(chan TmuxOutputEvent)
 		r := regexp.MustCompile("^\\%output ([^ ]+) (.*)")
 		go func() {
+			defer close(c)
 			for line := range lines {
 				m := r.FindStringSubmatch(line)
 				if m != nil {
@@ -61,7 +61,6 @@ var _ = Describe("Project", Ordered, func() {
 					c <- event
 				}
 			}
-			close(c)
 		}()
 		return c
 	}
@@ -238,13 +237,28 @@ var _ = Describe("Project", Ordered, func() {
 					CreatePaneWithCommands("Pane-2", "echo \"Bar\""),
 				))
 			session := handleProjectStart(proj.EnsureStarted(server))
-			time.Sleep(time.Second)
+			cm := MustStartControlMode(server, session)
+			defer cm.MustClose()
 			panes, err := server.GetPanesForSession(session)
 			Expect(err).ToNot(HaveOccurred())
+			panes[0].MustRunShellCommand("echo \"DONE 1\"")
+			outputEvents := getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout)))
+			Eventually(outputEvents).Should(Receive(Equal("DONE 1")))
+			panes[1].MustRunShellCommand("echo \"DONE 2\"")
+			Eventually(outputEvents).Should(Receive(Equal("DONE 2")))
 			output1 := server.Command("capture-pane", "-p", "-t", panes[0].Id).MustOutput()
 			output2 := server.Command("capture-pane", "-p", "-t", panes[1].Id).MustOutput()
 			Expect(output1).To(MatchRegexp("(?m:^Foo$)"))
 			Expect(output2).To(MatchRegexp("(?m:^Bar$)"))
+		})
+
+		It("Should not run the first pane's command twice on second startup", Pending, func() {
+			// When tmux starts, a window and a pane is created. Everything else is
+			// created by this tool.
+			// That also means that the first window and the first pane receives
+			// special handling.
+			// This tests makes sure that the special handling doesn't run the command
+			// twice when relaunching a project.
 		})
 	})
 })
