@@ -6,9 +6,11 @@ import (
 
 type Command = string
 
+type Commands = []Command
+
 type Task struct {
 	Name     string // must be unique
-	Commands Command
+	Commands Commands
 }
 
 type Project struct {
@@ -27,8 +29,8 @@ type Window struct {
 }
 
 type Pane struct {
-	Name     string
-	Commands []string
+	Name   string // Is this just the Task ID?
+	TaskId string
 }
 
 func NewWindow(name string) Window {
@@ -54,8 +56,8 @@ func startSessionAndSetFirstWindowName(
 }
 
 func ensureWindowHasPanes(
-
 	window *TmuxWindow,
+	project Project,
 	configuredWindow Window,
 ) error {
 	if window == nil {
@@ -82,11 +84,21 @@ func ensureWindowHasPanes(
 			if err != nil {
 				return err
 			}
-			for _, command := range pane.Commands {
+			task := project.FindTaskById(pane.TaskId)
+			for _, command := range task.Commands {
 				if err == nil {
 					err = tmuxPane.RunShellCommand(command)
 				}
 			}
+		}
+	}
+	return nil
+}
+
+func (p Project) FindTaskById(taskId string) *Task {
+	for _, task := range p.Tasks {
+		if task.Name == taskId {
+			return &task
 		}
 	}
 	return nil
@@ -136,7 +148,7 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 		} else {
 			err = server.MoveWindow(existingWindow, windowTarget)
 		}
-		ensureWindowHasPanes(existingWindow, configuredWindow)
+		ensureWindowHasPanes(existingWindow, p, configuredWindow)
 	}
 	return session, err
 }
