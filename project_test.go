@@ -236,10 +236,6 @@ var _ = Describe("Project", Ordered, func() {
 			Expect(output1).To(MatchRegexp("(?m:^Foo$)"))
 			Expect(output2).To(MatchRegexp("(?m:^Bar$)"))
 		})
-
-		It("Should support custom working folder and environment for each window", func() {
-			Skip("TODO")
-		})
 	})
 })
 
