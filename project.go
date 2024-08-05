@@ -66,30 +66,22 @@ func ensureWindowHasPanes(
 		return err
 	}
 	for i, pane := range configuredWindow.Panes {
-		var targetId string
 		var existingPane = tmuxPanes.FindByTitle(pane.Name)
 		if existingPane == nil {
+			var (
+				tmuxPane TmuxPane
+			)
 			if i == 0 {
-				err := server.Command("select-pane", "-t", window.Id, "-T", pane.Name).Run()
-				if err != nil {
-					return err
+				tmuxPane, err = window.GetFirstPane()
+				if err == nil {
+					tmuxPane, err = tmuxPane.Rename(pane.Name)
 				}
-				targetId = window.Id
 			} else {
-				output, err := server.Command("split-window", "-t", window.Id, "-P", "-F", "#{pane_id}").Output()
-				if err != nil {
-					return err
-				}
-				paneId := sanitizeOutput(output)
-				err = server.Command("select-pane", "-t", paneId, "-T", pane.Name).Run()
-				if err != nil {
-					return err
-				}
-				targetId = paneId
+				tmuxPane, err = window.Split(pane.Name)
 			}
-			// TODO: Don't create this type here
-			tmuxPane := TmuxPane{TmuxTarget{server, targetId}, pane.Name}
-			var err error = nil
+			if err != nil {
+				return err
+			}
 			for _, command := range pane.Commands {
 				if err == nil {
 					err = tmuxPane.RunShellCommand(command)

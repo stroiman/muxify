@@ -318,3 +318,31 @@ func must(err error) {
 func (s TmuxTarget) MustRunShellCommand(shellCommand string) {
 	must(s.RunShellCommand(shellCommand))
 }
+
+func (s TmuxTarget) GetFirstPane() (pane TmuxPane, err error) {
+	var panes []TmuxPane
+	panes, err = s.GetPanes()
+	if len(panes) > 0 {
+		pane = panes[0]
+	}
+	return
+}
+
+func (p TmuxPane) Rename(name string) (TmuxPane, error) {
+	err := p.Command("select-pane", "-t", p.Id, "-T", name).Run()
+	if err == nil {
+		p.Title = name
+	}
+	return p, err
+}
+
+func (w TmuxWindow) Split(name string) (TmuxPane, error) {
+	output, err := w.Command("split-window", "-t", w.Id, "-P", "-F", "#{pane_id}").
+		Output()
+	paneId := sanitizeOutput(output)
+	pane := TmuxPane{TmuxTarget{w.TmuxServer, paneId}, ""}
+	if err == nil {
+		pane, err = pane.Rename(name)
+	}
+	return pane, err
+}
