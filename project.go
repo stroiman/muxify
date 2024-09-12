@@ -13,8 +13,8 @@ type Task struct {
 }
 
 type Project struct {
-	Name             string // must be unique
-	WorkingDirectory string
+	Name             string
+	WorkingDirectory string `yaml:"working_dir,omitempty"`
 	Windows          []Window
 	Tasks            map[string]Task
 }
