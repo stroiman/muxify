@@ -9,7 +9,6 @@ type Command = string
 type Commands = []Command
 
 type Task struct {
-	Name     string // must be unique
 	Commands Commands
 }
 
@@ -17,7 +16,7 @@ type Project struct {
 	Name             string // must be unique
 	WorkingDirectory string
 	Windows          []Window
-	Tasks            []Task
+	Tasks            map[string]Task
 }
 
 type WindowId = uuid.UUID
@@ -96,12 +95,12 @@ func ensureWindowHasPanes(
 }
 
 func (p Project) FindTaskById(taskId string) *Task {
-	for _, task := range p.Tasks {
-		if task.Name == taskId {
-			return &task
-		}
+	task, ok := p.Tasks[taskId]
+	if ok {
+		return &task
+	} else {
+		return nil
 	}
-	return nil
 }
 
 func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
