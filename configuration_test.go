@@ -6,6 +6,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/stroiman/muxify"
+
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 var _ = Describe("Configuration", func() {
@@ -27,7 +29,14 @@ var _ = Describe("Configuration", func() {
 				"dev":         {},
 			},
 		}
-		Expect(project).To(Equal(expected))
+		Expect(project).To(BeComparableTo(expected, cmpopts.IgnoreUnexported(Window{})))
+	})
+
+	It("Should generate an valid configuration", func() {
+		reader := strings.NewReader(example_config)
+		project, err := Decode(reader)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(project.Validate()).To(Succeed())
 	})
 
 	It("Should allow a missing working_dir", func() {

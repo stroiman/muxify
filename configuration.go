@@ -6,15 +6,11 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
-type project struct {
-	Name             string
-	WorkingDirectory string
-	Windows          []Window
-	Tasks            map[string]Task
-}
-
 func Decode(reader io.Reader) (p Project, err error) {
 	decoder := yaml.NewDecoder(reader)
 	err = decoder.Decode(&p)
+	for i, w := range p.Windows {
+		p.Windows[i] = NewWindow(w.Name, w.Panes...)
+	}
 	return
 }

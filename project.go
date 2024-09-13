@@ -1,6 +1,8 @@
 package muxify
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 )
 
@@ -24,15 +26,16 @@ type WindowId = uuid.UUID
 type TaskId = string //
 
 type Window struct {
-	Id    WindowId
+	id    WindowId
 	Name  string
 	Panes []TaskId
 }
 
-func NewWindow(name string) Window {
+func NewWindow(name string, panes ...TaskId) Window {
 	return Window{
-		Id:   uuid.New(),
-		Name: name,
+		id:    uuid.New(),
+		Name:  name,
+		Panes: panes,
 	}
 }
 
@@ -100,6 +103,15 @@ func (p Project) FindTaskById(taskId string) *Task {
 	}
 }
 
+func (p Project) Validate() error {
+	for _, window := range p.Windows {
+		if window.id == uuid.Nil {
+			return errors.New("Window is lacking an ID")
+		}
+	}
+	return nil
+}
+
 func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	var (
 		session     TmuxSession
@@ -117,7 +129,7 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	windowMap := make(map[WindowId]*TmuxWindow)
 	for _, window := range p.Windows {
 		if tmuxWindow, ok := tmuxWindows.FindByName(window.Name); ok {
-			windowMap[window.Id] = &tmuxWindow
+			windowMap[window.id] = &tmuxWindow
 		}
 	}
 	for i, configuredWindow := range p.Windows {
@@ -131,16 +143,16 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 			// Other windows are placed _after_ the previously configured window
 			// which we assume is already in the right place because it was
 			// processed in the previous iteration.
-			windowTarget = AfterWindow(windowMap[p.Windows[i-1].Id])
+			windowTarget = AfterWindow(windowMap[p.Windows[i-1].id])
 		}
 
-		existingWindow := windowMap[configuredWindow.Id]
+		existingWindow := windowMap[configuredWindow.id]
 		if existingWindow == nil {
 			existingWindow, err = server.CreateWindow(
 				windowTarget,
 				configuredWindow.Name,
 			)
-			windowMap[configuredWindow.Id] = existingWindow
+			windowMap[configuredWindow.id] = existingWindow
 		} else {
 			err = server.MoveWindow(existingWindow, windowTarget)
 		}
