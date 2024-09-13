@@ -119,7 +119,7 @@ func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
 	)
 	sessions, err := server.GetRunningSessions()
 	if err != nil {
-		return TmuxSession{}, err
+		return session, err
 	}
 	session, ok := TmuxSessions(sessions).FindByName(p.Name)
 	if !ok {
