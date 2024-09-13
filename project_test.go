@@ -116,10 +116,10 @@ var _ = Describe("Project", Ordered, func() {
 		It("Should create a session with one pane", func() {
 			proj := CreateProject()
 			session := handleProjectStart(proj.EnsureStarted(server))
-			panes, err2 := session.GetPanes()
-			Expect(err2).ToNot(HaveOccurred())
 
-			Expect(panes).To(HaveExactElements(HaveField("Id", MatchRegexp("^\\%\\d+$"))))
+			Expect(
+				session.GetPanes(),
+			).To(HaveExactElements(HaveField("Id", MatchRegexp("^\\%\\d+$"))))
 		})
 
 		It("Should start in the correct working directory", func() {
@@ -147,9 +147,9 @@ var _ = Describe("Project", Ordered, func() {
 		It("Should set the window name according to the specification", func() {
 			proj := CreateProjectWithWindowNames("Window-1")
 			s1 := handleProjectStart(proj.EnsureStarted(server))
-			windows, err2 := server.GetWindowsForSession(s1)
-			Expect(err2).ToNot(HaveOccurred())
-			Expect(windows).To(HaveExactElements(HaveField("Name", "Window-1")))
+			Expect(
+				server.GetWindowsForSession(s1),
+			).To(HaveExactElements(HaveField("Name", "Window-1")))
 		})
 
 		It("Should support creating multiple windows", func() {
@@ -159,9 +159,7 @@ var _ = Describe("Project", Ordered, func() {
 				"Window-3",
 			)
 			session := handleProjectStart(proj.EnsureStarted(server))
-			windows, err2 := server.GetWindowsForSession(session)
-			Expect(err2).ToNot(HaveOccurred())
-			Expect(windows).To(HaveExactElements(
+			Expect(server.GetWindowsForSession(session)).To(HaveExactElements(
 				HaveField("Name", "Window-1"),
 				HaveField("Name", "Window-2"),
 				HaveField("Name", "Window-3"),
@@ -176,9 +174,7 @@ var _ = Describe("Project", Ordered, func() {
 			session := handleProjectStart(proj.EnsureStarted(server))
 			proj.AppendNamedWindow("Window-3")
 			handleProjectStart(proj.EnsureStarted(server))
-			windows, err2 := server.GetWindowsForSession(session)
-			Expect(err2).ToNot(HaveOccurred())
-			Expect(windows).To(HaveExactElements(
+			Expect(server.GetWindowsForSession(session)).To(HaveExactElements(
 				HaveField("Name", "Window-1"),
 				HaveField("Name", "Window-2"),
 				HaveField("Name", "Window-3"),
@@ -190,9 +186,7 @@ var _ = Describe("Project", Ordered, func() {
 			session := handleProjectStart(proj.EnsureStarted(server))
 			proj.ReplaceWindowNames("Window-1", "Window-2", "Window-3", "Window-4")
 			handleProjectStart(proj.EnsureStarted(server))
-			windows, err2 := server.GetWindowsForSession(session)
-			Expect(err2).ToNot(HaveOccurred())
-			Expect(windows).To(HaveExactElements(
+			Expect(server.GetWindowsForSession(session)).To(HaveExactElements(
 				HaveField("Name", "Window-1"),
 				HaveField("Name", "Window-2"),
 				HaveField("Name", "Window-3"),
@@ -205,9 +199,7 @@ var _ = Describe("Project", Ordered, func() {
 			session := handleProjectStart(proj.EnsureStarted(server))
 			proj.ReplaceWindowNames("Window-1", "Window-2")
 			handleProjectStart(proj.EnsureStarted(server))
-			windows, err2 := server.GetWindowsForSession(session)
-			Expect(err2).ToNot(HaveOccurred())
-			Expect(windows).To(HaveExactElements(
+			Expect(server.GetWindowsForSession(session)).To(HaveExactElements(
 				HaveField("Name", "Window-1"),
 				HaveField("Name", "Window-2"),
 			))
@@ -228,9 +220,7 @@ var _ = Describe("Project", Ordered, func() {
 				{"Window-2", "Pane-3"},
 				{"Window-2", "Pane-4"},
 			}
-			result, err := server.GetWindowAndPaneNames()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(result).To(HaveExactElements(expected))
+			Expect(server.GetWindowAndPaneNames()).To(HaveExactElements(expected))
 		})
 
 		It("Should not add more panes when re-launching", func() {
@@ -250,9 +240,7 @@ var _ = Describe("Project", Ordered, func() {
 				{"Window-2", "Pane-3"},
 				{"Window-2", "Pane-4"},
 			}
-			result, err := server.GetWindowAndPaneNames()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(result).To(HaveExactElements(expected))
+			Expect(server.GetWindowAndPaneNames()).To(HaveExactElements(expected))
 		})
 
 		It("Should execute the commands defined in the pane configuration", func() {
@@ -308,7 +296,6 @@ var _ = Describe("Project", Ordered, func() {
 			var exp *regexp.Regexp = regexp.MustCompile(`(?m:^(?:Foo|Bar))`)
 			Expect(exp.FindAllString(string(output1), -1)).To(Equal([]string{"Foo"}))
 			Expect(exp.FindAllString(string(output2), -1)).To(Equal([]string{"Bar"}))
-
 		})
 	})
 })
