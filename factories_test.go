@@ -41,7 +41,7 @@ func (p *TestProject) AppendNamedWindow(windowName string) *TestWindow {
 	}
 }
 
-func (w *TestWindow) AppendPane(pane Pane) *TestWindow {
+func (w *TestWindow) AppendPane(pane TaskId) *TestWindow {
 	w.Panes = append(w.Panes, pane)
 	return w
 }
@@ -54,17 +54,17 @@ func (p *TestProject) ReplaceWindowNames(windowNames ...string) {
 	p.Project.Windows = windows
 }
 
-func (s *TestProject) CreatePaneWithCommands(paneName string, commands ...string) Pane {
+func (s *TestProject) CreatePaneWithCommands(paneName string, commands ...string) TaskId {
 	task := Task{Commands(commands)}
 	if s.Tasks == nil {
 		s.Tasks = make(map[string]Task)
 	}
 	s.Tasks[paneName] = task
-	pane := Pane{paneName, paneName}
+	pane := paneName
 	return pane
 }
 
-func CreateWindowWithPanes(windowName string, panes ...Pane) Window {
+func CreateWindowWithPanes(windowName string, panes ...TaskId) Window {
 	window := NewWindow(windowName)
 	window.Panes = panes
 	return window

@@ -21,15 +21,12 @@ type Project struct {
 
 type WindowId = uuid.UUID
 
+type TaskId = string //
+
 type Window struct {
 	Id    WindowId
 	Name  string
-	Panes []Pane
-}
-
-type Pane struct {
-	Name   string // Is this just the Task ID?
-	TaskId string
+	Panes []TaskId
 }
 
 func NewWindow(name string) Window {
@@ -67,7 +64,7 @@ func ensureWindowHasPanes(
 		return err
 	}
 	for i, pane := range configuredWindow.Panes {
-		var existingPane = tmuxPanes.FindByTitle(pane.Name)
+		var existingPane = tmuxPanes.FindByTitle(pane)
 		if existingPane == nil {
 			var (
 				tmuxPane TmuxPane
@@ -75,15 +72,15 @@ func ensureWindowHasPanes(
 			if i == 0 {
 				tmuxPane, err = window.GetFirstPane()
 				if err == nil {
-					tmuxPane, err = tmuxPane.Rename(pane.Name)
+					tmuxPane, err = tmuxPane.Rename(pane)
 				}
 			} else {
-				tmuxPane, err = window.Split(pane.Name)
+				tmuxPane, err = window.Split(pane)
 			}
 			if err != nil {
 				return err
 			}
-			task := project.FindTaskById(pane.TaskId)
+			task := project.FindTaskById(pane)
 			for _, command := range task.Commands {
 				if err == nil {
 					err = tmuxPane.RunShellCommand(command)
