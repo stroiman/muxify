@@ -47,8 +47,8 @@ tldr; It works, but configuration format _will_ change.
 
 The tool is currently working, i.e. you can run it, it will read a configuration
 from `$XDG_CONFIG_HOME/muxify/projects.yaml` or fallback to
-`$HOME/.config/muxify/projects.yaml`, and initialise a tmux session, but not
-enter tmux, you need to do that manually.
+`$HOME/.config/muxify/projects.yaml`, and initialise a tmux session. The tool
+will not start a client, see the [tips](#Tips) below.
 
 Error messages are also notoriously poor, and there is little validation of
 configuration file. E.g. a project name _must_ be a valid tmux session name; but
@@ -89,6 +89,12 @@ This is written in Go
 
 ## Possible configuration properties
 
+NOTE: This is not the configuration format. This was originally written to
+indicate the intent of the tool; which hasn't changed. The current state of the
+project does not support the intended behaviour yet.
+
+---
+
 This is just an example of where this might end up, but try to illustate the
 scenario of swithing between a laptop on the road, or at the desk with multiple
 monitors.
@@ -124,6 +130,26 @@ projects:
                 editor:
                   panes:
                     - tasks:tests
+```
+
+## Tips
+
+Currently, the tool only creates and configures sessions, windows, and panes on
+a tmux server; but it does not launch a client. I use the following shell
+script which automates launching a tmux client; or switching session if run from
+_inside_ an existing tmux session.
+
+```sh
+#!/bin/sh
+
+set -xe
+muxify $1 
+
+if [ -z "$TMUX" ]; then
+  tmux attach -t $1
+else
+  tmux switch-client -t $1
+fi
 ```
 
 ## Note about the tests
@@ -173,4 +199,7 @@ Reorganise windows, massive refactoring, and adding support to start know will
 need to change. Added the ability to start multiple panes.
 
 
+### [September 12-14th 2024 - Create an executable](https://github.com/stroiman/muxify/blob/main/devlog/Part6.md)
 
+Create an executable binary that reads configuration from a file, and I am now
+starting to use the tool.
