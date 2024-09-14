@@ -12,17 +12,17 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-type testOs struct {
+type FakeOS struct {
 	files fstest.MapFS
 	env   map[string]string
 }
 
-func (os testOs) LookupEnv(key string) (string, bool) {
+func (os FakeOS) LookupEnv(key string) (string, bool) {
 	value, ok := os.env[key]
 	return value, ok
 }
 
-func (os testOs) Dir(base string) fs.FS {
+func (os FakeOS) Dir(base string) fs.FS {
 	result := make(fstest.MapFS)
 	prefix := base + "/"
 	for path, file := range os.files {
@@ -34,7 +34,7 @@ func (os testOs) Dir(base string) fs.FS {
 }
 
 var _ = Describe("Configuration", Ordered, func() {
-	var fakeOs testOs
+	var fakeOs FakeOS
 	var projectsConfigFile *fstest.MapFile
 
 	BeforeAll(func() {
@@ -48,7 +48,7 @@ var _ = Describe("Configuration", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		fakeOs = testOs{
+		fakeOs = FakeOS{
 			fstest.MapFS{},
 			map[string]string{"HOME": "/users/foo"},
 		}
