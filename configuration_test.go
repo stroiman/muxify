@@ -2,6 +2,7 @@ package main_test
 
 import (
 	"io/fs"
+	"os"
 	"strings"
 	"testing/fstest"
 
@@ -79,6 +80,19 @@ var _ = Describe("Configuration", Ordered, func() {
 					},
 				}}}
 			Expect(project).To(BeComparableTo(expected, cmpopts.IgnoreUnexported(Window{})))
+		})
+
+		It("Should expand environment variables", func() {
+			os.Setenv("MUX_TEST_VALUE", "/user/foo")
+			projectsConfigFile.Data = []byte(`projects:
+  - name: project-1
+    working_dir: $MUX_TEST_VALUE/work`)
+			projects, err := ReadConfiguration(fakeOs)
+			Expect(err).ToNot(HaveOccurred())
+			expected := MuxifyConfiguration{
+				Projects: []Project{{Name: "project-1", WorkingDirectory: "/user/foo/work"}},
+			}
+			Expect(projects).To(BeComparableTo(expected, cmpopts.IgnoreUnexported(Window{})))
 		})
 	})
 

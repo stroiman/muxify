@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"os"
 	"path"
 
 	"gopkg.in/yaml.v3"
@@ -26,6 +27,7 @@ func Decode(reader io.Reader) (config MuxifyConfiguration, err error) {
 	decoder := yaml.NewDecoder(reader)
 	err = decoder.Decode(&config)
 	for pi, p := range config.Projects {
+		p.WorkingDirectory = os.ExpandEnv(p.WorkingDirectory)
 		for wi, w := range p.Windows {
 			p.Windows[wi] = NewWindow(w.Name, w.Panes...)
 		}
