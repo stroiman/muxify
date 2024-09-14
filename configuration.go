@@ -44,17 +44,7 @@ func ReadConfiguration(os OS) (config MuxifyConfiguration, err error) {
 	if err != nil {
 		return
 	}
-	// configDir, configDirFound := os.LookupEnv("XDG_CONFIG_HOME")
-	// if !configDirFound {
-	// 	homeDir, found := os.LookupEnv("HOME")
-	// 	if !found {
-	// 		err = errors.New("Home dir not configured")
-	// 		return
-	// 	}
-	// 	configDir = path.Join(homeDir, ".config")
-	// }
-	// dir := os.Dir(configDir)
-	file, err := dir.Open("muxify/projects")
+	file, err := dir.Open("projects")
 	if err == nil {
 		defer func() {
 			closeErr := file.Close()
@@ -66,14 +56,29 @@ func ReadConfiguration(os OS) (config MuxifyConfiguration, err error) {
 	}
 	return
 }
-
-func getConfigDir(os OS) (fs.FS, error) {
+func getConfigDirPath(os OS) (string, error) {
 	if configDir, configDirFound := os.LookupEnv("XDG_CONFIG_HOME"); configDirFound {
-		return os.Dir(configDir), nil
+		return configDir, nil
 	}
 	if homeDir, found := os.LookupEnv("HOME"); found {
-		configDir := path.Join(homeDir, ".config")
-		return os.Dir(configDir), nil
+		return path.Join(homeDir, ".config"), nil
 	}
-	return nil, errors.New("Home dir not configured")
+	return "", errors.New("Home dir not configured")
+}
+
+func getAppName(os OS) string {
+	if appName, ok := os.LookupEnv("MUXIFY_APPNAME"); ok {
+		return appName
+	} else {
+		return "muxify"
+	}
+}
+
+func getConfigDir(os OS) (dir fs.FS, err error) {
+	configDir, err := getConfigDirPath(os)
+	if err == nil {
+		appName := getAppName(os)
+		dir = os.Dir(path.Join(configDir, appName))
+	}
+	return
 }

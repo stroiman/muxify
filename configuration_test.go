@@ -33,23 +33,25 @@ func (os testOs) Dir(base string) fs.FS {
 	return result
 }
 
-var _ = Describe("Configuration", Focus, func() {
+var _ = Describe("Configuration", Ordered, func() {
 	var fakeOs testOs
 	var projectsConfigFile *fstest.MapFile
+
+	BeforeAll(func() {
+		projectsConfigFile = &fstest.MapFile{
+			Data: []byte(example_config),
+			Mode: fs.ModePerm,
+		}
+		DeferCleanup(func() {
+			projectsConfigFile = nil // Allow GC
+		})
+	})
 
 	BeforeEach(func() {
 		fakeOs = testOs{
 			fstest.MapFS{},
 			map[string]string{"HOME": "/users/foo"},
 		}
-		projectsConfigFile = &fstest.MapFile{
-			Data: []byte(example_config),
-			Mode: fs.ModePerm,
-		}
-		DeferCleanup(func() {
-			// Allow GC
-			projectsConfigFile = nil
-		})
 	})
 
 	Describe("Default config location", func() {
@@ -86,6 +88,24 @@ var _ = Describe("Configuration", Focus, func() {
 
 		It("Should succeed when the file is under the new location", func() {
 			fakeOs.files["/var/config/muxify/projects"] = projectsConfigFile
+			_, err := ReadConfiguration(fakeOs)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("Should return an error when the file is only in the default location", func() {
+			fakeOs.files["/users/foo/.config/muxify/projects"] = projectsConfigFile
+			_, err := ReadConfiguration(fakeOs)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Describe("User has specified a MUXIFY_APPNAME", func() {
+		BeforeEach(func() {
+			fakeOs.env["MUXIFY_APPNAME"] = "muxer"
+		})
+
+		It("Should succeed when the file is under the specified folder", func() {
+			fakeOs.files["/users/foo/.config/muxer/projects"] = projectsConfigFile
 			_, err := ReadConfiguration(fakeOs)
 			Expect(err).ToNot(HaveOccurred())
 		})
