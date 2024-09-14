@@ -26,7 +26,7 @@ var _ = Describe("Cli", func() {
 		call.Do(func(project Project) {
 			actualProject = project
 		})
-		cli.Run([]string{"Project 1"})
+		cli.Run([]string{"muxify", "Project 1"})
 		controller.Finish()
 		Expect(actualProject).To(Equal(Project{Name: "Project 1"}))
 	})

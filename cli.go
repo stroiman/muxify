@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"strings"
 )
 
 type DefaultRunner struct {
@@ -25,17 +26,22 @@ type CLI struct {
 }
 
 func (cli CLI) Run(args []string) error {
-	if len(args) < 1 {
+	if len(args) < 2 {
 		return errors.New("No argument")
 	}
 	configuration, err := ReadConfiguration(cli)
 	if err != nil {
 		return err
 	}
-	if project, ok := configuration.GetProject(args[0]); ok {
+	if project, ok := configuration.GetProject(args[1]); ok {
 		return cli.Runner.Run(project)
 	} else {
-		return errors.New("Project not found")
+		var b strings.Builder
+		b.WriteString("The project was not found. Valid project names are:\n")
+		for _, p := range configuration.Projects {
+			b.WriteString(fmt.Sprintf(" - %s\n", p.Name))
+		}
+		return errors.New(b.String())
 	}
 }
 
