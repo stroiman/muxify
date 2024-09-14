@@ -1,7 +1,9 @@
 package muxify_test
 
 import (
+	"io/fs"
 	"strings"
+	"testing/fstest"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -10,25 +12,89 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
+type testOs struct {
+	files fstest.MapFS
+	env   map[string]string
+}
+
+func (os testOs) LookupEnv(key string) (string, bool) {
+	value, ok := os.env[key]
+	return value, ok
+}
+
+func (os testOs) Dir(base string) fs.FS {
+	result := make(fstest.MapFS)
+	prefix := base + "/"
+	for path, file := range os.files {
+		if newPath, ok := strings.CutPrefix(path, prefix); ok {
+			result[newPath] = file
+		}
+	}
+	return result
+}
+
 var _ = Describe("Configuration", Focus, func() {
-	It("Should deserialise a full configuration", func() {
-		reader := strings.NewReader(example_config)
-		project, err := Decode(reader)
-		Expect(err).ToNot(HaveOccurred())
-		expected := MuxifyConfiguration{
-			Projects: []Project{{
-				Name:             "Project 1",
-				WorkingDirectory: "/work",
-				Windows: []Window{
-					{Name: "window-1", Panes: []string{"editor", "test-runner"}},
-					{Name: "window-2", Panes: []string{"dev"}}},
-				Tasks: map[string]Task{
-					"editor":      {Commands: []string{"nvim"}},
-					"test-runner": {Commands: []string{"docker-compose up -d", "pnpm test:watch"}},
-					"dev":         {},
-				},
-			}}}
-		Expect(project).To(BeComparableTo(expected, cmpopts.IgnoreUnexported(Window{})))
+	var fakeOs testOs
+	var projectsConfigFile *fstest.MapFile
+
+	BeforeEach(func() {
+		fakeOs = testOs{
+			fstest.MapFS{},
+			map[string]string{"HOME": "/users/foo"},
+		}
+		projectsConfigFile = &fstest.MapFile{
+			Data: []byte(example_config),
+			Mode: fs.ModePerm,
+		}
+		DeferCleanup(func() {
+			// Allow GC
+			projectsConfigFile = nil
+		})
+	})
+
+	Describe("Default config location", func() {
+		BeforeEach(func() {
+			fakeOs.files["/users/foo/.config/muxify/projects"] = projectsConfigFile
+		})
+
+		It("Should deserialise a full configuration", func() {
+			project, err := ReadConfiguration(fakeOs)
+			Expect(err).ToNot(HaveOccurred())
+			expected := MuxifyConfiguration{
+				Projects: []Project{{
+					Name:             "Project 1",
+					WorkingDirectory: "/work",
+					Windows: []Window{
+						{Name: "window-1", Panes: []string{"editor", "test-runner"}},
+						{Name: "window-2", Panes: []string{"dev"}}},
+					Tasks: map[string]Task{
+						"editor": {Commands: []string{"nvim"}},
+						"test-runner": {
+							Commands: []string{"docker-compose up -d", "pnpm test:watch"},
+						},
+						"dev": {},
+					},
+				}}}
+			Expect(project).To(BeComparableTo(expected, cmpopts.IgnoreUnexported(Window{})))
+		})
+	})
+
+	Describe("User has overridden XDG_CONFIG_HOME", func() {
+		BeforeEach(func() {
+			fakeOs.env["XDG_CONFIG_HOME"] = "/var/config"
+		})
+
+		It("Should succeed when the file is under the new location", func() {
+			fakeOs.files["/var/config/muxify/projects"] = projectsConfigFile
+			_, err := ReadConfiguration(fakeOs)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("Should return an error when the file is only in the default location", func() {
+			fakeOs.files["/users/foo/.config/muxify/projects"] = projectsConfigFile
+			_, err := ReadConfiguration(fakeOs)
+			Expect(err).To(HaveOccurred())
+		})
 	})
 
 	It("Should generate an valid configuration", func() {
