@@ -44,7 +44,7 @@ func ReadConfiguration(os OS) (config MuxifyConfiguration, err error) {
 	if err != nil {
 		return
 	}
-	file, err := dir.Open("projects")
+	file, err := dir.Open("projects.yaml")
 	if err == nil {
 		defer func() {
 			closeErr := file.Close()

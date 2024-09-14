@@ -13,7 +13,7 @@ import (
 var _ = Describe("Cli", func() {
 	It("Should start the configured project", func() {
 		fakeOs := FakeOS{
-			files: fstest.MapFS{"/users/foo/.config/muxify/projects": &fstest.MapFile{
+			files: fstest.MapFS{"/users/foo/.config/muxify/projects.yaml": &fstest.MapFile{
 				Data: []byte(configuration),
 			}},
 			env: map[string]string{"HOME": "/users/foo"},

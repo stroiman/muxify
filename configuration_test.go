@@ -57,7 +57,7 @@ var _ = Describe("Configuration", Ordered, func() {
 
 	Describe("Default config location", func() {
 		BeforeEach(func() {
-			fakeOs.files["/users/foo/.config/muxify/projects"] = projectsConfigFile
+			fakeOs.files["/users/foo/.config/muxify/projects.yaml"] = projectsConfigFile
 		})
 
 		It("Should deserialise a full configuration", func() {
@@ -88,13 +88,13 @@ var _ = Describe("Configuration", Ordered, func() {
 		})
 
 		It("Should succeed when the file is under the new location", func() {
-			fakeOs.files["/var/config/muxify/projects"] = projectsConfigFile
+			fakeOs.files["/var/config/muxify/projects.yaml"] = projectsConfigFile
 			_, err := ReadConfiguration(fakeOs)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("Should return an error when the file is only in the default location", func() {
-			fakeOs.files["/users/foo/.config/muxify/projects"] = projectsConfigFile
+			fakeOs.files["/users/foo/.config/muxify/projects.yaml"] = projectsConfigFile
 			_, err := ReadConfiguration(fakeOs)
 			Expect(err).To(HaveOccurred())
 		})
@@ -106,13 +106,13 @@ var _ = Describe("Configuration", Ordered, func() {
 		})
 
 		It("Should succeed when the file is under the specified folder", func() {
-			fakeOs.files["/users/foo/.config/muxer/projects"] = projectsConfigFile
+			fakeOs.files["/users/foo/.config/muxer/projects.yaml"] = projectsConfigFile
 			_, err := ReadConfiguration(fakeOs)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("Should return an error when the file is only in the default location", func() {
-			fakeOs.files["/users/foo/.config/muxify/projects"] = projectsConfigFile
+			fakeOs.files["/users/foo/.config/muxify/projects.yaml"] = projectsConfigFile
 			_, err := ReadConfiguration(fakeOs)
 			Expect(err).To(HaveOccurred())
 		})
