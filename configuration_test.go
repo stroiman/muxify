@@ -1,4 +1,4 @@
-package muxify_test
+package main_test
 
 import (
 	"io/fs"
@@ -7,22 +7,23 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	. "github.com/stroiman/muxify"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-type testOs struct {
+type FakeOS struct {
 	files fstest.MapFS
 	env   map[string]string
 }
 
-func (os testOs) LookupEnv(key string) (string, bool) {
+func (os FakeOS) LookupEnv(key string) (string, bool) {
 	value, ok := os.env[key]
 	return value, ok
 }
 
-func (os testOs) Dir(base string) fs.FS {
+func (os FakeOS) Dir(base string) fs.FS {
 	result := make(fstest.MapFS)
 	prefix := base + "/"
 	for path, file := range os.files {
@@ -34,7 +35,7 @@ func (os testOs) Dir(base string) fs.FS {
 }
 
 var _ = Describe("Configuration", Ordered, func() {
-	var fakeOs testOs
+	var fakeOs FakeOS
 	var projectsConfigFile *fstest.MapFile
 
 	BeforeAll(func() {
@@ -48,7 +49,7 @@ var _ = Describe("Configuration", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		fakeOs = testOs{
+		fakeOs = FakeOS{
 			fstest.MapFS{},
 			map[string]string{"HOME": "/users/foo"},
 		}
@@ -56,7 +57,7 @@ var _ = Describe("Configuration", Ordered, func() {
 
 	Describe("Default config location", func() {
 		BeforeEach(func() {
-			fakeOs.files["/users/foo/.config/muxify/projects"] = projectsConfigFile
+			fakeOs.files["/users/foo/.config/muxify/projects.yaml"] = projectsConfigFile
 		})
 
 		It("Should deserialise a full configuration", func() {
@@ -87,13 +88,13 @@ var _ = Describe("Configuration", Ordered, func() {
 		})
 
 		It("Should succeed when the file is under the new location", func() {
-			fakeOs.files["/var/config/muxify/projects"] = projectsConfigFile
+			fakeOs.files["/var/config/muxify/projects.yaml"] = projectsConfigFile
 			_, err := ReadConfiguration(fakeOs)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("Should return an error when the file is only in the default location", func() {
-			fakeOs.files["/users/foo/.config/muxify/projects"] = projectsConfigFile
+			fakeOs.files["/users/foo/.config/muxify/projects.yaml"] = projectsConfigFile
 			_, err := ReadConfiguration(fakeOs)
 			Expect(err).To(HaveOccurred())
 		})
@@ -105,13 +106,13 @@ var _ = Describe("Configuration", Ordered, func() {
 		})
 
 		It("Should succeed when the file is under the specified folder", func() {
-			fakeOs.files["/users/foo/.config/muxer/projects"] = projectsConfigFile
+			fakeOs.files["/users/foo/.config/muxer/projects.yaml"] = projectsConfigFile
 			_, err := ReadConfiguration(fakeOs)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("Should return an error when the file is only in the default location", func() {
-			fakeOs.files["/users/foo/.config/muxify/projects"] = projectsConfigFile
+			fakeOs.files["/users/foo/.config/muxify/projects.yaml"] = projectsConfigFile
 			_, err := ReadConfiguration(fakeOs)
 			Expect(err).To(HaveOccurred())
 		})

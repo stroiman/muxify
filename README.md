@@ -34,6 +34,26 @@ launch the project.
 And neither of the tools helped me arrange stuff on multiple monitors; or adapt
 the layout depending on the task I was working on.
 
+### Current state!
+
+tldr; It works, but configuration format _will_ change.
+
+- The configuration files doesn't yet support multiple layouts for a project.
+- Error messages are very poos.
+- There is no validation, e.g. a project and window names must be valie project
+  and session names; but that is not validated when loading the configuration.
+
+#### Configuration file
+
+The tool is currently working, i.e. you can run it, it will read a configuration
+from `$XDG_CONFIG_HOME/muxify/projects.yaml` or fallback to
+`$HOME/.config/muxify/projects.yaml`, and initialise a tmux session, but not
+enter tmux, you need to do that manually.
+
+Error messages are also notoriously poor, and there is little validation of
+configuration file. E.g. a project name _must_ be a valid tmux session name; but
+there is no validation of that yet.
+
 ## General idea
 
 You define 3 different concepts

@@ -1,4 +1,4 @@
-package muxify_test
+package main_test
 
 import (
 	"os"
@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-
 	. "github.com/stroiman/muxify"
 )
 
