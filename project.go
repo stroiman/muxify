@@ -1,6 +1,8 @@
 package muxify
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 )
 
@@ -13,8 +15,8 @@ type Task struct {
 }
 
 type Project struct {
-	Name             string // must be unique
-	WorkingDirectory string
+	Name             string
+	WorkingDirectory string `yaml:"working_dir,omitempty"`
 	Windows          []Window
 	Tasks            map[string]Task
 }
@@ -24,15 +26,16 @@ type WindowId = uuid.UUID
 type TaskId = string //
 
 type Window struct {
-	Id    WindowId
+	id    WindowId
 	Name  string
 	Panes []TaskId
 }
 
-func NewWindow(name string) Window {
+func NewWindow(name string, panes ...TaskId) Window {
 	return Window{
-		Id:   uuid.New(),
-		Name: name,
+		id:    uuid.New(),
+		Name:  name,
+		Panes: panes,
 	}
 }
 
@@ -100,51 +103,93 @@ func (p Project) FindTaskById(taskId string) *Task {
 	}
 }
 
-func (p Project) EnsureStarted(server TmuxServer) (TmuxSession, error) {
-	var (
-		session     TmuxSession
-		tmuxWindows TmuxWindows
-	)
-	sessions, err := server.GetRunningSessions()
-	if err != nil {
-		return TmuxSession{}, err
+func (p Project) Validate() error {
+	for _, window := range p.Windows {
+		if window.id == uuid.Nil {
+			return errors.New("Window is lacking an ID")
+		}
 	}
-	session, ok := TmuxSessions(sessions).FindByName(p.Name)
-	if !ok {
+	return nil
+}
+
+// TmuxWindowMap maps a desired window configuration to an actual TMUX window
+// that _may_ or _may not_ be properly configured
+type TmuxWindowMap = map[WindowId]*TmuxWindow
+
+func (p Project) ensureSession(server TmuxServer) (session TmuxSession, err error) {
+	var ok bool
+	sessions, err := server.GetRunningSessions()
+	session, ok = TmuxSessions(sessions).FindByName(p.Name)
+	if err == nil && !ok {
+		// Set first window name - a session always has a window, and if the name
+		// doesn't match a configured window, the tool will leave it be, as if it
+		// was created by the user.
 		session, err = startSessionAndSetFirstWindowName(server, p)
 	}
-	tmuxWindows, err = server.GetWindowsForSession(session)
+	return
+}
+
+func (p Project) EnsureStarted(server TmuxServer) (session TmuxSession, err error) {
+	session, err = p.ensureSession(server)
+	if err != nil {
+		return
+	}
+	tmuxWindows, err := session.GetWindows()
 	windowMap := make(map[WindowId]*TmuxWindow)
 	for _, window := range p.Windows {
 		if tmuxWindow, ok := tmuxWindows.FindByName(window.Name); ok {
-			windowMap[window.Id] = &tmuxWindow
+			windowMap[window.id] = &tmuxWindow
 		}
 	}
+
 	for i, configuredWindow := range p.Windows {
-		// Target position for window operations. Before or after an
-		// existing window
+		if err != nil {
+			break
+		}
+		// Iterate through the list of _desired_ windows. For the first configured
+		// window, we want it to be placed _before_ the first existing window. Any
+		// subsequent window is then targeted to be created/moved to _after_ the
+		// previously configured window. This we will assume is already correct, as
+		// that was handled in the previous iteration.
 		var windowTarget WindowTarget
 		if i == 0 {
-			// The first window we place _before_ the currently shown window
 			windowTarget = BeforeWindow(&tmuxWindows[0])
 		} else {
-			// Other windows are placed _after_ the previously configured window
-			// which we assume is already in the right place because it was
-			// processed in the previous iteration.
-			windowTarget = AfterWindow(windowMap[p.Windows[i-1].Id])
+			windowTarget = AfterWindow(windowMap[p.Windows[i-1].id])
 		}
 
-		existingWindow := windowMap[configuredWindow.Id]
-		if existingWindow == nil {
+		var existingWindow *TmuxWindow
+		if existingWindow = windowMap[configuredWindow.id]; existingWindow == nil {
 			existingWindow, err = server.CreateWindow(
 				windowTarget,
 				configuredWindow.Name,
 			)
-			windowMap[configuredWindow.Id] = existingWindow
+			windowMap[configuredWindow.id] = existingWindow
 		} else {
 			err = server.MoveWindow(existingWindow, windowTarget)
 		}
-		ensureWindowHasPanes(existingWindow, p, configuredWindow)
+		if err == nil {
+			err = ensureWindowHasPanes(existingWindow, p, configuredWindow)
+		}
 	}
-	return session, err
+	return
+}
+
+func ensureWindow(
+	server TmuxServer,
+	configuredWindow Window,
+	windowTarget WindowTarget,
+	windowMap map[WindowId]*TmuxWindow,
+) (existingWindow *TmuxWindow, err error) {
+	existingWindow = windowMap[configuredWindow.id]
+	if existingWindow == nil {
+		existingWindow, err = server.CreateWindow(
+			windowTarget,
+			configuredWindow.Name,
+		)
+		windowMap[configuredWindow.id] = existingWindow
+	} else {
+		err = server.MoveWindow(existingWindow, windowTarget)
+	}
+	return
 }

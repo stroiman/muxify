@@ -225,10 +225,16 @@ func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows TmuxWindo
 	return
 }
 
+func (s TmuxSession) GetWindows() (TmuxWindows, error) {
+	return s.GetWindowsForSession(s)
+}
+
 func (s TmuxServer) RenameWindow(windowId string, name string) error {
 	return s.Command("rename-window", "-t", windowId, name).Run()
 }
 
+// WindowTarget represents how the position of a new TMUX window can be passed
+// to TMUX itself, which can be either _before_ or _after_ an existing window.
 type WindowTarget struct {
 	target *TmuxWindow
 	before bool
