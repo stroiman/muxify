@@ -1,5 +1,5 @@
 //go:generate mockgen -source=cli.go -destination=cli_mocks_test.go -package=main_test
-package muxify_test
+package main_test
 
 import (
 	"testing/fstest"

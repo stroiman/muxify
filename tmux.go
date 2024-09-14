@@ -1,4 +1,4 @@
-package muxify
+package main
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package muxify_test
+package main_test
 
 import (
 	"io/fs"
@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	. "github.com/stroiman/muxify"
 
 	"github.com/google/go-cmp/cmp/cmpopts"

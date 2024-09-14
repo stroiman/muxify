@@ -1,4 +1,4 @@
-package muxify
+package main
 
 import (
 	"errors"
@@ -41,19 +41,19 @@ func (cli CLI) Run(args []string) error {
 
 type RealOS struct{}
 
-func (os RealOS) Dir(name string) fs.FS {
-	return os.Dir(name)
+func (o RealOS) Dir(name string) fs.FS {
+	return os.DirFS(name)
 }
 
-func (os RealOS) LookupEnv(name string) (string, bool) {
+func (o RealOS) LookupEnv(name string) (string, bool) {
 	return os.LookupEnv(name)
 }
 
-func Main() {
+func main() {
 	err := CLI{DefaultRunner{}, RealOS{}}.Run(os.Args)
 	if err == nil {
 		os.Exit(0)
 	} else {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 	}
 }
