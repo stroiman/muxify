@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -121,19 +122,70 @@ var _ = Describe("Project", Ordered, func() {
 			).To(HaveExactElements(HaveField("Id", MatchRegexp("^\\%\\d+$"))))
 		})
 
-		It("Should start in the correct working directory", func() {
-			proj := CreateProject()
-			proj.WorkingDirectory = dir
-			session := handleProjectStart(proj.EnsureStarted(server))
-			cm := MustStartControlMode(server, session)
-			defer cm.MustClose()
+		Describe("Working dir", func() {
+			It("Should start in the correct working directory", func() {
+				proj := CreateProject()
+				proj.WorkingDirectory = dir
+				session := handleProjectStart(proj.EnsureStarted(server))
+				cm := MustStartControlMode(server, session)
+				defer cm.MustClose()
 
-			Expect(
-				session.RunShellCommand("echo $PWD"),
-			).To(Succeed())
-			Eventually(
-				getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout))),
-			).Should(Receive(Equal(dir)))
+				Expect(
+					session.RunShellCommand("echo $PWD"),
+				).To(Succeed())
+				Eventually(
+					getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout))),
+				).Should(Receive(Equal(dir)))
+			})
+
+			It("Should start in the correct working directory in multiple windows", func() {
+				proj := CreateProjectWithWindowNames(
+					"Window-1",
+					"Window-2",
+					"Window-3",
+				)
+				proj.WorkingDirectory = dir
+				session := handleProjectStart(proj.EnsureStarted(server))
+				cm := MustStartControlMode(server, session)
+				defer cm.MustClose()
+
+				outputStream := getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout)))
+				windows := session.MustGetWindows()
+				for winNo, win := range windows {
+					Expect(
+						win.RunShellCommand("echo $PWD"),
+					).To(Succeed())
+					Eventually(
+						outputStream,
+					).Should(Receive(Equal(dir)), fmt.Sprintf("Window no: %d", winNo+1))
+				}
+			},
+			)
+			It("Should start in the correct working directory in multiple panes", func() {
+				proj := CreateProject()
+				proj.AppendNamedWindow("Window-1").
+					AppendPane(proj.CreatePaneWithCommands("pane-1")).
+					AppendPane(proj.CreatePaneWithCommands("pane-2"))
+				proj.WorkingDirectory = dir
+				session := handleProjectStart(proj.EnsureStarted(server))
+				cm := MustStartControlMode(server, session)
+				defer cm.MustClose()
+
+				outputStream := getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout)))
+				windows := session.MustGetWindows()
+				for winNo, window := range windows {
+					panes := window.MustGetPanes()
+					for paneNo, pane := range panes {
+						Expect(
+							pane.RunShellCommand("echo $PWD"),
+						).To(Succeed())
+						Eventually(
+							outputStream,
+						).Should(Receive(Equal(dir)), fmt.Sprintf("Win, pane no: %d, %d", winNo+1, paneNo+1))
+					}
+				}
+			},
+			)
 		})
 
 		It("Should return the existing session if it has been started", func() {

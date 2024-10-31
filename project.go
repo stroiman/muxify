@@ -78,7 +78,7 @@ func ensureWindowHasPanes(
 					tmuxPane, err = tmuxPane.Rename(pane)
 				}
 			} else {
-				tmuxPane, err = window.Split(pane)
+				tmuxPane, err = window.Split(pane, project.WorkingDirectory)
 			}
 			if err != nil {
 				return err
@@ -163,6 +163,7 @@ func (p Project) EnsureStarted(server TmuxServer) (session TmuxSession, err erro
 			existingWindow, err = server.CreateWindow(
 				windowTarget,
 				configuredWindow.Name,
+				p.WorkingDirectory,
 			)
 			windowMap[configuredWindow.id] = existingWindow
 		} else {
@@ -175,21 +176,22 @@ func (p Project) EnsureStarted(server TmuxServer) (session TmuxSession, err erro
 	return
 }
 
-func ensureWindow(
-	server TmuxServer,
-	configuredWindow Window,
-	windowTarget WindowTarget,
-	windowMap map[WindowId]*TmuxWindow,
-) (existingWindow *TmuxWindow, err error) {
-	existingWindow = windowMap[configuredWindow.id]
-	if existingWindow == nil {
-		existingWindow, err = server.CreateWindow(
-			windowTarget,
-			configuredWindow.Name,
-		)
-		windowMap[configuredWindow.id] = existingWindow
-	} else {
-		err = server.MoveWindow(existingWindow, windowTarget)
-	}
-	return
-}
+// func ensureWindow(
+// 	server TmuxServer,
+// 	configuredWindow Window,
+// 	windowTarget WindowTarget,
+// 	windowMap map[WindowId]*TmuxWindow,
+// ) (existingWindow *TmuxWindow, err error) {
+// 	existingWindow = windowMap[configuredWindow.id]
+// 	if existingWindow == nil {
+// 		existingWindow, err = server.CreateWindow(
+// 			windowTarget,
+// 			configuredWindow.Name,
+// 			"",
+// 		)
+// 		windowMap[configuredWindow.id] = existingWindow
+// 	} else {
+// 		err = server.MoveWindow(existingWindow, windowTarget)
+// 	}
+// 	return
+// }

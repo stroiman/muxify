@@ -210,6 +210,12 @@ func (s TmuxTarget) GetPanes() (panes TmuxPanes, err error) {
 	return
 }
 
+func (s TmuxTarget) MustGetPanes() TmuxPanes {
+	panes, err := s.GetPanes()
+	must(err)
+	return panes
+}
+
 func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows TmuxWindows, err error) {
 	var output []byte
 	output, err = s.Command("list-windows", "-t", session.Id, "-F", `"#{window_id}":"#{window_name}"`).
@@ -227,6 +233,12 @@ func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows TmuxWindo
 
 func (s TmuxSession) GetWindows() (TmuxWindows, error) {
 	return s.GetWindowsForSession(s)
+}
+
+func (s TmuxSession) MustGetWindows() TmuxWindows {
+	windows, err := s.GetWindows()
+	must(err)
+	return windows
 }
 
 func (s TmuxServer) RenameWindow(windowId string, name string) error {
@@ -265,9 +277,13 @@ func (t WindowTarget) createArgs() []string {
 func (s TmuxServer) CreateWindow(
 	target WindowTarget,
 	name string,
+	workingDir string,
 ) (*TmuxWindow, error) {
 	args := []string{"new-window", "-n", name, "-F", "#{window_id}", "-P"}
 	args = append(args, target.createArgs()...)
+	if workingDir != "" {
+		args = append(args, "-c", workingDir)
+	}
 	output, err := s.Command(args...).Output()
 	window := TmuxWindow{
 		TmuxTarget{
@@ -342,8 +358,12 @@ func (p TmuxPane) Rename(name string) (TmuxPane, error) {
 	return p, err
 }
 
-func (w TmuxWindow) Split(name string) (TmuxPane, error) {
-	output, err := w.Command("split-window", "-t", w.Id, "-P", "-F", "#{pane_id}").
+func (w TmuxWindow) Split(name string, workingDir string) (TmuxPane, error) {
+	args := []string{"split-window", "-t", w.Id, "-P", "-F", "#{pane_id}"}
+	if workingDir != "" {
+		args = append(args, "-c", workingDir)
+	}
+	output, err := w.Command(args...).
 		Output()
 	paneId := sanitizeOutput(output)
 	pane := TmuxPane{TmuxTarget{w.TmuxServer, paneId}, ""}
