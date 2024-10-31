@@ -168,7 +168,7 @@ func parsePaneOutput(output []byte) ([]PaneData, error) {
 		top, _ := strconv.Atoi(submatch[3])
 		bottom, _ := strconv.Atoi(submatch[4])
 		left, _ := strconv.Atoi(submatch[5])
-		right, _ := strconv.Atoi(submatch[5])
+		right, _ := strconv.Atoi(submatch[6])
 		layout := PaneLayout{
 			top, bottom, left, right,
 		}

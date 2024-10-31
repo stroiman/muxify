@@ -275,6 +275,17 @@ var _ = Describe("Project", Ordered, func() {
 		})
 
 		Describe("Pane layout", func() {
+			Describe("Inspect layout", func() {
+				It("Should have top<bottom & left<right", func() {
+					proj := CreateProject()
+					session := handleProjectStart(proj.EnsureStarted(server))
+					panes := session.MustGetPanes()
+					layout := panes[0].Layout
+					Expect(layout.Top).To(BeNumerically("<", layout.Bottom), "Top < Bottom")
+					Expect(layout.Left).To(BeNumerically("<", layout.Right), "Left < Right")
+				})
+			})
+
 			It("Should handle horizontal layout", func() {
 				proj := CreateProject()
 				proj.AppendNamedWindow("Window-1").
