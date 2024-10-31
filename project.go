@@ -26,9 +26,10 @@ type WindowId = uuid.UUID
 type TaskId = string //
 
 type Window struct {
-	id    WindowId
-	Name  string
-	Panes []TaskId
+	id     WindowId
+	Name   string
+	Panes  []TaskId
+	Layout string
 }
 
 func NewWindow(name string, panes ...TaskId) Window {
@@ -78,7 +79,13 @@ func ensureWindowHasPanes(
 					tmuxPane, err = tmuxPane.Rename(pane)
 				}
 			} else {
-				tmuxPane, err = window.Split(pane, project.WorkingDirectory)
+				if configuredWindow.Layout == "horizontal" || configuredWindow.Layout == "" {
+					tmuxPane, err = window.SplitHorizontal(pane, project.WorkingDirectory)
+				} else if configuredWindow.Layout == "vertical" {
+					tmuxPane, err = window.SplitVertical(pane, project.WorkingDirectory)
+				} else {
+					err = errors.New("Invalid window layout")
+				}
 			}
 			if err != nil {
 				return err

@@ -46,6 +46,16 @@ func (w *TestWindow) AppendPane(pane TaskId) *TestWindow {
 	return w
 }
 
+func (w *TestWindow) SetVerticalLayout() *TestWindow {
+	w.Layout = "vertical"
+	return w
+}
+
+func (w *TestWindow) SetHorizontalLayout() *TestWindow {
+	w.Layout = "horizontal"
+	return w
+}
+
 func (p *TestProject) ReplaceWindowNames(windowNames ...string) {
 	windows := make([]Window, len(windowNames))
 	for i, name := range windowNames {

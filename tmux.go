@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -22,10 +23,17 @@ type TmuxSession struct {
 	TmuxTarget
 	Name string
 }
+type PaneLayout struct {
+	Top    int
+	Bottom int
+	Left   int
+	Right  int
+}
 
 type TmuxPane struct {
 	TmuxTarget
-	Title string
+	Title  string
+	Layout PaneLayout
 }
 
 type TmuxWindow struct {
@@ -139,6 +147,37 @@ func parseLinesQuoted(output []byte) ([][2]string, error) {
 	return result, nil
 }
 
+var paneLineParser *regexp.Regexp = regexp.MustCompile(
+	`^"([^"]+)":"([^"]+)":(\d+),(\d+),(\d+),(\d+)$`,
+)
+
+type PaneData struct {
+	ids    [2]string
+	layout PaneLayout
+}
+
+func parsePaneOutput(output []byte) ([]PaneData, error) {
+	lines := getLines(output)
+	result := make([]PaneData, len(lines))
+	for i, line := range lines {
+		submatch := paneLineParser.FindStringSubmatch(line)
+		if submatch == nil {
+			return []PaneData{}, fmt.Errorf("Bad result from tmux: %s", line)
+		}
+
+		top, _ := strconv.Atoi(submatch[3])
+		bottom, _ := strconv.Atoi(submatch[4])
+		left, _ := strconv.Atoi(submatch[5])
+		right, _ := strconv.Atoi(submatch[5])
+		layout := PaneLayout{
+			top, bottom, left, right,
+		}
+		ids := [2]string{submatch[1], submatch[2]}
+		result[i] = PaneData{ids, layout}
+	}
+	return result, nil
+}
+
 func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
 	stdOut, err := s.Command("start", ";", "list-sessions", "-F", `"#{session_id}":"#{session_name}"`).
 		Output()
@@ -192,19 +231,22 @@ func (p TmuxPanes) FindByTitle(title string) *TmuxPane {
 
 func (s TmuxTarget) GetPanes() (panes TmuxPanes, err error) {
 	var output []byte
-	output, err = s.Command("list-panes", "-t", s.Id, "-F", `"#{pane_id}":"#{pane_title}"`).Output()
+	output, err = s.Command("list-panes", "-t", s.Id, "-F", `"#{pane_id}":"#{pane_title}":#{pane_top},#{pane_bottom},#{pane_left},#{pane_right}`).
+		Output()
 	if err != nil {
 		return
 	}
-	lines, err := parseLinesQuoted(output)
+	lines, err := parsePaneOutput(output)
 	panes = make([]TmuxPane, len(lines))
-	for i, l := range lines {
+	for i, data := range lines {
+		l := data.ids
 		panes[i] = TmuxPane{
 			TmuxTarget{
 				s.TmuxServer,
 				l[0],
 			},
 			l[1],
+			data.layout,
 		}
 	}
 	return
@@ -358,15 +400,30 @@ func (p TmuxPane) Rename(name string) (TmuxPane, error) {
 	return p, err
 }
 
-func (w TmuxWindow) Split(name string, workingDir string) (TmuxPane, error) {
-	args := []string{"split-window", "-t", w.Id, "-P", "-F", "#{pane_id}"}
+func (w TmuxWindow) SplitHorizontal(name string, workingDir string) (TmuxPane, error) {
+	args := []string{"split-window", "-h", "-t", w.Id, "-P", "-F", "#{pane_id}"}
 	if workingDir != "" {
 		args = append(args, "-c", workingDir)
 	}
 	output, err := w.Command(args...).
 		Output()
 	paneId := sanitizeOutput(output)
-	pane := TmuxPane{TmuxTarget{w.TmuxServer, paneId}, ""}
+	pane := TmuxPane{TmuxTarget{w.TmuxServer, paneId}, "", PaneLayout{}}
+	if err == nil {
+		pane, err = pane.Rename(name)
+	}
+	return pane, err
+}
+
+func (w TmuxWindow) SplitVertical(name string, workingDir string) (TmuxPane, error) {
+	args := []string{"split-window", "-v", "-t", w.Id, "-P", "-F", "#{pane_id}"}
+	if workingDir != "" {
+		args = append(args, "-c", workingDir)
+	}
+	output, err := w.Command(args...).
+		Output()
+	paneId := sanitizeOutput(output)
+	pane := TmuxPane{TmuxTarget{w.TmuxServer, paneId}, "", PaneLayout{}}
 	if err == nil {
 		pane, err = pane.Rename(name)
 	}

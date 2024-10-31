@@ -274,6 +274,38 @@ var _ = Describe("Project", Ordered, func() {
 			Expect(server.GetWindowAndPaneNames()).To(HaveExactElements(expected))
 		})
 
+		Describe("Pane layout", func() {
+			It("Should handle horizontal layout", func() {
+				proj := CreateProject()
+				proj.AppendNamedWindow("Window-1").
+					SetHorizontalLayout().
+					AppendPane(proj.CreatePaneWithCommands("Pane-1")).
+					AppendPane(proj.CreatePaneWithCommands("Pane-2"))
+				session := handleProjectStart(proj.EnsureStarted(server))
+				panes := session.MustGetPanes()
+				Expect(panes[0].Title).To(Equal("Pane-1"))
+				Expect(panes[1].Title).To(Equal("Pane-2"))
+				Expect(panes[0].Layout.Top).To(Equal(0), "First pane top")
+				Expect(panes[0].Layout.Left).To(Equal(0), "First pane left")
+				Expect(panes[1].Layout.Top).To(Equal(0), "Second pane top")
+				Expect(panes[1].Layout.Left).ToNot(Equal(0), "Second pane left")
+			})
+
+			It("Should handle vertical layout", func() {
+				proj := CreateProject()
+				proj.AppendNamedWindow("Window-1").
+					SetVerticalLayout().
+					AppendPane(proj.CreatePaneWithCommands("Pane-1")).
+					AppendPane(proj.CreatePaneWithCommands("Pane-2"))
+				session := handleProjectStart(proj.EnsureStarted(server))
+				panes := session.MustGetPanes()
+				Expect(panes[0].Layout.Top).To(Equal(0), "First pane top")
+				Expect(panes[0].Layout.Left).To(Equal(0), "First pane left")
+				Expect(panes[1].Layout.Top).ToNot(Equal(0), "Second pane top")
+				Expect(panes[1].Layout.Left).To(Equal(0), "Second pane left")
+			})
+		})
+
 		It("Should not add more panes when re-launching", func() {
 			proj := CreateProject()
 			proj.AppendNamedWindow("Window-1").
