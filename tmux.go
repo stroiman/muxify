@@ -131,51 +131,37 @@ func (s TmuxServer) StartSessionByName(name string) (TmuxSession, error) {
 	return s.StartSession(name, "-s", name)
 }
 
-var lineParser *regexp.Regexp = regexp.MustCompile(`^"([^"]+)":"([^"]+)"$`)
+// TODO: This pattern requires extending the regexp every time another parameter
+// is needed. But capture groups don't support multiplicity. e.g. (pattern)*
+// captures only once, no matter how many repetitions the pattern has.
+var lineParser *regexp.Regexp = regexp.MustCompile(`^"([^"]+)":"([^"]+)"(?::"([^"]+)")?$`)
 
-func parseLinesQuoted(output []byte) ([][2]string, error) {
+func parseLinesQuoted(output []byte) ([][]string, error) {
 	lines := getLines(output)
-	result := make([][2]string, len(lines))
+	result := make([][]string, len(lines))
 	for i, line := range lines {
 		submatch := lineParser.FindStringSubmatch(line)
 		if submatch == nil {
-			return [][2]string{}, fmt.Errorf("Bad result from tmux: %s", line)
+			return [][]string{}, fmt.Errorf("Bad result from tmux: %s", line)
 		}
 
-		result[i] = [2]string{submatch[1], submatch[2]}
+		result[i] = submatch[1:]
 	}
 	return result, nil
 }
 
-var paneLineParser *regexp.Regexp = regexp.MustCompile(
-	`^"([^"]+)":"([^"]+)":(\d+),(\d+),(\d+),(\d+)$`,
-)
+var dimensionsParser = regexp.MustCompile(`^(\d+),(\d+),(\d+),(\d+)$`)
 
-type PaneData struct {
-	ids    [2]string
-	layout PaneLayout
-}
-
-func parsePaneOutput(output []byte) ([]PaneData, error) {
-	lines := getLines(output)
-	result := make([]PaneData, len(lines))
-	for i, line := range lines {
-		submatch := paneLineParser.FindStringSubmatch(line)
-		if submatch == nil {
-			return []PaneData{}, fmt.Errorf("Bad result from tmux: %s", line)
-		}
-
-		top, _ := strconv.Atoi(submatch[3])
-		bottom, _ := strconv.Atoi(submatch[4])
-		left, _ := strconv.Atoi(submatch[5])
-		right, _ := strconv.Atoi(submatch[6])
-		layout := PaneLayout{
-			top, bottom, left, right,
-		}
-		ids := [2]string{submatch[1], submatch[2]}
-		result[i] = PaneData{ids, layout}
+func parseDimensions(input string) (PaneLayout, error) {
+	submatch := dimensionsParser.FindStringSubmatch(input)
+	if submatch == nil || len(submatch) != 5 {
+		return PaneLayout{}, fmt.Errorf("Bad dimensions result: %s", input)
 	}
-	return result, nil
+	top, _ := strconv.Atoi(submatch[1])
+	bottom, _ := strconv.Atoi(submatch[2])
+	left, _ := strconv.Atoi(submatch[3])
+	right, _ := strconv.Atoi(submatch[4])
+	return PaneLayout{top, bottom, left, right}, nil
 }
 
 func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
@@ -229,26 +215,39 @@ func (p TmuxPanes) FindByTitle(title string) *TmuxPane {
 	return nil
 }
 
-func (s TmuxTarget) GetPanes() (panes TmuxPanes, err error) {
-	var output []byte
-	output, err = s.Command("list-panes", "-t", s.Id, "-F", `"#{pane_id}":"#{pane_title}":#{pane_top},#{pane_bottom},#{pane_left},#{pane_right}`).
+func (s TmuxTarget) runCommandAndParseOutputFormat(command ...string) ([][]string, error) {
+	output, err := s.Command(command...).
 		Output()
 	if err != nil {
-		return
+		return nil, err
 	}
-	lines, err := parsePaneOutput(output)
-	panes = make([]TmuxPane, len(lines))
-	for i, data := range lines {
-		l := data.ids
-		panes[i] = TmuxPane{
-			TmuxTarget{
-				s.TmuxServer,
-				l[0],
-			},
-			l[1],
-			data.layout,
+	return parseLinesQuoted(output)
+}
+
+func (s TmuxTarget) GetPanes() (panes TmuxPanes, err error) {
+	data, err := s.runCommandAndParseOutputFormat(
+		"list-panes",
+		"-t",
+		s.Id,
+		"-F",
+		`"#{pane_id}":"#{pane_title}":"#{pane_top},#{pane_bottom},#{pane_left},#{pane_right}"`,
+	)
+	panes = make([]TmuxPane, len(data))
+	for i, line := range data {
+		if err == nil {
+			var layout PaneLayout
+			layout, err = parseDimensions(line[2])
+			panes[i] = TmuxPane{
+				TmuxTarget{
+					s.TmuxServer,
+					line[0],
+				},
+				line[1],
+				layout,
+			}
 		}
 	}
+
 	return
 }
 
