@@ -32,6 +32,15 @@ type Window struct {
 	Layout string
 }
 
+var emptyUUID = uuid.UUID{}
+
+func (w *Window) EnsureValid() *Window {
+	if w.id == emptyUUID {
+		w.id = uuid.New()
+	}
+	return w
+}
+
 func NewWindow(name string, panes ...TaskId) Window {
 	return Window{
 		id:    uuid.New(),

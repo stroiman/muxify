@@ -28,8 +28,8 @@ func Decode(reader io.Reader) (config MuxifyConfiguration, err error) {
 	err = decoder.Decode(&config)
 	for pi, p := range config.Projects {
 		p.WorkingDirectory = os.ExpandEnv(p.WorkingDirectory)
-		for wi, w := range p.Windows {
-			p.Windows[wi] = NewWindow(w.Name, w.Panes...)
+		for wi := range p.Windows {
+			p.Windows[wi].EnsureValid()
 		}
 		config.Projects[pi] = p
 	}

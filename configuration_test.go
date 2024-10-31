@@ -69,8 +69,12 @@ var _ = Describe("Configuration", Ordered, func() {
 					Name:             "Project 1",
 					WorkingDirectory: "/work",
 					Windows: []Window{
-						{Name: "window-1", Panes: []string{"editor", "test-runner"}},
-						{Name: "window-2", Panes: []string{"dev"}}},
+						{
+							Name:   "window-1",
+							Layout: "vertical",
+							Panes:  []string{"editor", "test-runner"},
+						},
+						{Name: "window-2", Layout: "", Panes: []string{"dev"}}},
 					Tasks: map[string]Task{
 						"editor": {Commands: []string{"nvim"}},
 						"test-runner": {
@@ -155,6 +159,7 @@ projects:
     working_dir: "/work"
     windows:
       - name: "window-1"
+        layout: vertical
         panes:
           - editor
           - test-runner
