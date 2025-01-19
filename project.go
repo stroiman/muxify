@@ -93,11 +93,8 @@ func startSessionAndSetFirstWindowName(
 	if project.WorkingDirectory == "" {
 		session, err = server.StartSessionByName(project.Name)
 	} else {
-		dir := project.WorkingDirectory
-		if task, ok := project.FirstTask(); ok && task.WorkingDirectory != "" {
-			dir = path.Join(dir, task.WorkingDirectory)
-		}
-		session, err = server.StartSessionByNameInDir(project.Name, dir)
+		task, _ := project.FirstTask()
+		session, err = server.StartSessionByNameInDir(project.Name, project.TaskDir(task))
 	}
 	if err == nil && len(project.Windows) > 0 {
 		err = server.RenameWindow(session.Id, project.Windows[0].Name)
@@ -128,10 +125,7 @@ func ensureWindowHasPanes(
 					tmuxPane, err = tmuxPane.Rename(pane)
 				}
 			} else {
-				workingDir := project.WorkingDirectory
-				if task.WorkingDirectory != "" {
-					workingDir = path.Join(workingDir, task.WorkingDirectory)
-				}
+				workingDir := project.TaskDir(*task)
 				if configuredWindow.Layout == "horizontal" || configuredWindow.Layout == "" {
 					tmuxPane, err = window.SplitHorizontal(pane, workingDir)
 				} else if configuredWindow.Layout == "vertical" {
@@ -221,10 +215,6 @@ func (p Project) EnsureStarted(server TmuxServer) (session TmuxSession, err erro
 		if existingWindow = windowMap[configuredWindow.id]; existingWindow != nil {
 			err = server.MoveWindow(existingWindow, windowTarget)
 		} else {
-			dir := p.WorkingDirectory
-			if task, ok := p.FirstWindowTask(configuredWindow); ok && task.WorkingDirectory != "" {
-				dir = path.Join(dir, task.WorkingDirectory)
-			}
 			existingWindow, err = server.CreateWindow(windowTarget, configuredWindow.Name, p.WindowDir(configuredWindow))
 			windowMap[configuredWindow.id] = existingWindow
 		}
