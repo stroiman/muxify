@@ -225,6 +225,43 @@ var _ = Describe("Project", Ordered, func() {
 				}
 			})
 
+			It("Should start a task in a subfolder in a new window if specified", func() {
+				subdir := path.Join(dir, "sub_dir")
+				os.Mkdir(subdir, 0700)
+				defer func() { os.Remove(subdir) }()
+				proj := CreateProject(ProjectWorkingDir(dir))
+				pane1id := proj.CreatePane("pane-1")
+				pane2id := proj.CreatePane("pane-2", TaskWorkingDir("./sub_dir"))
+				proj.AppendNamedWindow("Window-1").AppendPane(pane1id)
+				proj.AppendNamedWindow("Window-2").AppendPane(pane2id)
+				proj.WorkingDirectory = dir
+				session := handleProjectStart(proj.EnsureStarted(server))
+				cm := MustStartControlMode(server, session)
+				defer cm.MustClose()
+
+				outputStream := getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout)))
+				panes := make(TmuxPanes, 0)
+				windows := session.MustGetWindows()
+				for _, window := range windows {
+					panes = append(panes, window.MustGetPanes()...)
+				}
+				pane1 := panes.FindByTitle(pane1id)
+				pane2 := panes.FindByTitle(pane2id)
+
+				Expect(
+					pane1.RunShellCommand("echo $PWD"),
+				).To(Succeed())
+				Eventually(
+					outputStream,
+				).Should(Receive(Equal(dir)), fmt.Sprintf("Pane: %s", pane1id))
+				Expect(
+					pane2.RunShellCommand("echo $PWD"),
+				).To(Succeed())
+				Eventually(
+					outputStream,
+				).Should(Receive(Equal(subdir)), fmt.Sprintf("Pane: %s", pane2id))
+			})
+
 			It("Should start a task in a subfolder for first task", func() {
 				subdir := path.Join(dir, "sub_dir")
 				os.Mkdir(subdir, 0700)

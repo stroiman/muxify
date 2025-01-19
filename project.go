@@ -27,11 +27,30 @@ func (p Project) FirstTask() (t Task, ok bool) {
 	if len(p.Windows) == 0 {
 		return
 	}
-	win := p.Windows[0]
-	if len(win.Panes) == 0 {
+	return p.FirstWindowTask(p.Windows[0])
+}
+
+func (p Project) WindowDir(w Window) string {
+	dir := p.WorkingDirectory
+	if task, ok := p.FirstWindowTask(w); ok && dir != "" {
+		return p.TaskDir(task)
+	}
+	return dir
+}
+
+func (p Project) TaskDir(t Task) string {
+	dir := p.WorkingDirectory
+	if t.WorkingDirectory != "" {
+		return path.Join(dir, t.WorkingDirectory)
+	}
+	return dir
+}
+
+func (p Project) FirstWindowTask(w Window) (t Task, ok bool) {
+	if len(w.Panes) == 0 {
 		return
 	}
-	taskId := win.Panes[0]
+	taskId := w.Panes[0]
 	if p.Tasks == nil {
 		return
 	}
@@ -199,15 +218,15 @@ func (p Project) EnsureStarted(server TmuxServer) (session TmuxSession, err erro
 		}
 
 		var existingWindow *TmuxWindow
-		if existingWindow = windowMap[configuredWindow.id]; existingWindow == nil {
-			existingWindow, err = server.CreateWindow(
-				windowTarget,
-				configuredWindow.Name,
-				p.WorkingDirectory,
-			)
-			windowMap[configuredWindow.id] = existingWindow
-		} else {
+		if existingWindow = windowMap[configuredWindow.id]; existingWindow != nil {
 			err = server.MoveWindow(existingWindow, windowTarget)
+		} else {
+			dir := p.WorkingDirectory
+			if task, ok := p.FirstWindowTask(configuredWindow); ok && task.WorkingDirectory != "" {
+				dir = path.Join(dir, task.WorkingDirectory)
+			}
+			existingWindow, err = server.CreateWindow(windowTarget, configuredWindow.Name, p.WindowDir(configuredWindow))
+			windowMap[configuredWindow.id] = existingWindow
 		}
 		if err == nil {
 			err = ensureWindowHasPanes(existingWindow, p, configuredWindow)
@@ -215,23 +234,3 @@ func (p Project) EnsureStarted(server TmuxServer) (session TmuxSession, err erro
 	}
 	return
 }
-
-// func ensureWindow(
-// 	server TmuxServer,
-// 	configuredWindow Window,
-// 	windowTarget WindowTarget,
-// 	windowMap map[WindowId]*TmuxWindow,
-// ) (existingWindow *TmuxWindow, err error) {
-// 	existingWindow = windowMap[configuredWindow.id]
-// 	if existingWindow == nil {
-// 		existingWindow, err = server.CreateWindow(
-// 			windowTarget,
-// 			configuredWindow.Name,
-// 			"",
-// 		)
-// 		windowMap[configuredWindow.id] = existingWindow
-// 	} else {
-// 		err = server.MoveWindow(existingWindow, windowTarget)
-// 	}
-// 	return
-// }
