@@ -3,6 +3,7 @@ package main_test
 import (
 	"fmt"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 
@@ -161,6 +162,7 @@ var _ = Describe("Project", Ordered, func() {
 				}
 			},
 			)
+
 			It("Should start in the correct working directory in multiple panes", func() {
 				proj := CreateProject()
 				proj.AppendNamedWindow("Window-1").
@@ -184,8 +186,81 @@ var _ = Describe("Project", Ordered, func() {
 						).Should(Receive(Equal(dir)), fmt.Sprintf("Win, pane no: %d, %d", winNo+1, paneNo+1))
 					}
 				}
-			},
-			)
+			})
+
+			It("Should start a task in a subfolder if specified", func() {
+				subdir := path.Join(dir, "sub_dir")
+				os.Mkdir(subdir, 0700)
+				defer func() { os.Remove(subdir) }()
+				proj := CreateProject(ProjectWorkingDir(dir))
+				pane1id := proj.CreatePane("pane-1")
+				pane2id := proj.CreatePane("pane-2", TaskWorkingDir("./sub_dir"))
+				win := proj.AppendNamedWindow("Window-1")
+				win.AppendPane(pane1id)
+				win.AppendPane(pane2id)
+				proj.WorkingDirectory = dir
+				session := handleProjectStart(proj.EnsureStarted(server))
+				cm := MustStartControlMode(server, session)
+				defer cm.MustClose()
+
+				outputStream := getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout)))
+				windows := session.MustGetWindows()
+				for winNo, window := range windows {
+					panes := window.MustGetPanes()
+					pane1 := panes.FindByTitle(pane1id)
+					pane2 := panes.FindByTitle(pane2id)
+
+					Expect(
+						pane1.RunShellCommand("echo $PWD"),
+					).To(Succeed())
+					Eventually(
+						outputStream,
+					).Should(Receive(Equal(dir)), fmt.Sprintf("Win, pane no: %d, %d", winNo+1, 1))
+					Expect(
+						pane2.RunShellCommand("echo $PWD"),
+					).To(Succeed())
+					Eventually(
+						outputStream,
+					).Should(Receive(Equal(subdir)), fmt.Sprintf("Win, pane no: %d, %d", winNo+1, 2))
+				}
+			})
+
+			It("Should start a task in a subfolder for first task", func() {
+				subdir := path.Join(dir, "sub_dir")
+				os.Mkdir(subdir, 0700)
+				defer func() { os.Remove(subdir) }()
+				proj := CreateProject(ProjectWorkingDir(dir))
+				pane1id := proj.CreatePane("pane-1", TaskWorkingDir("./sub_dir"))
+				pane2id := proj.CreatePane("pane-2")
+				win := proj.AppendNamedWindow("Window-1")
+				win.AppendPane(pane1id)
+				win.AppendPane(pane2id)
+				proj.WorkingDirectory = dir
+				session := handleProjectStart(proj.EnsureStarted(server))
+				cm := MustStartControlMode(server, session)
+				defer cm.MustClose()
+
+				outputStream := getOutputLinesFromEvents(getOutputEvents(GetLines(cm.stdout)))
+				windows := session.MustGetWindows()
+				for winNo, window := range windows {
+					panes := window.MustGetPanes()
+					pane1 := panes.FindByTitle(pane1id)
+					pane2 := panes.FindByTitle(pane2id)
+
+					Expect(
+						pane1.RunShellCommand("echo $PWD"),
+					).To(Succeed())
+					Eventually(
+						outputStream,
+					).Should(Receive(Equal(subdir)), fmt.Sprintf("Win, pane no: %d, %d", winNo+1, 1))
+					Expect(
+						pane2.RunShellCommand("echo $PWD"),
+					).To(Succeed())
+					Eventually(
+						outputStream,
+					).Should(Receive(Equal(dir)), fmt.Sprintf("Win, pane no: %d, %d", winNo+1, 2))
+				}
+			})
 		})
 
 		It("Should return the existing session if it has been started", func() {

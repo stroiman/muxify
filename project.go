@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"path"
 
 	"github.com/google/uuid"
 )
@@ -20,6 +21,22 @@ type Project struct {
 	WorkingDirectory string `yaml:"working_dir,omitempty"`
 	Windows          []Window
 	Tasks            map[string]Task
+}
+
+func (p Project) FirstTask() (t Task, ok bool) {
+	if len(p.Windows) == 0 {
+		return
+	}
+	win := p.Windows[0]
+	if len(win.Panes) == 0 {
+		return
+	}
+	taskId := win.Panes[0]
+	if p.Tasks == nil {
+		return
+	}
+	t, ok = p.Tasks[taskId]
+	return
 }
 
 type WindowId = uuid.UUID
@@ -57,7 +74,11 @@ func startSessionAndSetFirstWindowName(
 	if project.WorkingDirectory == "" {
 		session, err = server.StartSessionByName(project.Name)
 	} else {
-		session, err = server.StartSessionByNameInDir(project.Name, project.WorkingDirectory)
+		dir := project.WorkingDirectory
+		if task, ok := project.FirstTask(); ok && task.WorkingDirectory != "" {
+			dir = path.Join(dir, task.WorkingDirectory)
+		}
+		session, err = server.StartSessionByNameInDir(project.Name, dir)
 	}
 	if err == nil && len(project.Windows) > 0 {
 		err = server.RenameWindow(session.Id, project.Windows[0].Name)
@@ -80,19 +101,22 @@ func ensureWindowHasPanes(
 	for i, pane := range configuredWindow.Panes {
 		var existingPane = tmuxPanes.FindByTitle(pane)
 		if existingPane == nil {
-			var (
-				tmuxPane TmuxPane
-			)
+			task := project.FindTaskById(pane)
+			var tmuxPane TmuxPane
+
 			if i == 0 {
-				tmuxPane, err = window.GetFirstPane()
-				if err == nil {
+				if tmuxPane, err = window.GetFirstPane(); err == nil {
 					tmuxPane, err = tmuxPane.Rename(pane)
 				}
 			} else {
+				workingDir := project.WorkingDirectory
+				if task.WorkingDirectory != "" {
+					workingDir = path.Join(workingDir, task.WorkingDirectory)
+				}
 				if configuredWindow.Layout == "horizontal" || configuredWindow.Layout == "" {
-					tmuxPane, err = window.SplitHorizontal(pane, project.WorkingDirectory)
+					tmuxPane, err = window.SplitHorizontal(pane, workingDir)
 				} else if configuredWindow.Layout == "vertical" {
-					tmuxPane, err = window.SplitVertical(pane, project.WorkingDirectory)
+					tmuxPane, err = window.SplitVertical(pane, workingDir)
 				} else {
 					err = errors.New("Invalid window layout")
 				}
@@ -100,7 +124,6 @@ func ensureWindowHasPanes(
 			if err != nil {
 				return err
 			}
-			task := project.FindTaskById(pane)
 			for _, command := range task.Commands {
 				if err == nil {
 					err = tmuxPane.RunShellCommand(command)

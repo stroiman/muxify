@@ -15,9 +15,19 @@ func CreateProjectWithWindows(windows ...Window) *TestProject {
 	}
 }
 
-// Just an alias to hide the fact that creating an empty project is just
-// the same as not supplying any variables arguments
-var CreateProject = CreateProjectWithWindows
+type CreateProjectOption func(*TestProject)
+
+func ProjectWorkingDir(dir string) CreateProjectOption {
+	return func(p *TestProject) {
+		p.WorkingDirectory = dir
+	}
+}
+
+func CreateProject(options ...CreateProjectOption) *TestProject {
+	return &TestProject{Project{
+		Name: CreateRandomName(),
+	}}
+}
 
 func CreateProjectWithWindowNames(windowNames ...string) *TestProject {
 	windows := make([]Window, len(windowNames))
@@ -64,7 +74,39 @@ func (p *TestProject) ReplaceWindowNames(windowNames ...string) {
 	p.Project.Windows = windows
 }
 
+type CreatePaneOption struct {
+	UpdateTask func(task *Task)
+}
+
+func TaskWorkingDir(dir string) CreatePaneOption {
+	return CreatePaneOption{
+		UpdateTask: func(task *Task) { task.WorkingDirectory = dir },
+	}
+}
+
+func TaskCommands(commands ...string) CreatePaneOption {
+	return CreatePaneOption{
+		UpdateTask: func(task *Task) { task.Commands = Commands(commands) },
+	}
+}
+
+func (s *TestProject) CreatePane(paneName string, options ...CreatePaneOption) TaskId {
+	task := Task{}
+	if s.Tasks == nil {
+		s.Tasks = make(map[string]Task)
+	}
+	for _, o := range options {
+		if o.UpdateTask != nil {
+			o.UpdateTask(&task)
+		}
+	}
+	s.Tasks[paneName] = task
+	pane := paneName
+	return pane
+}
+
 func (s *TestProject) CreatePaneWithCommands(paneName string, commands ...string) TaskId {
+	// return s.CreatePane(paneName, TaskCommands(commands...));
 	task := Task{Commands: Commands(commands)}
 	if s.Tasks == nil {
 		s.Tasks = make(map[string]Task)
@@ -72,10 +114,4 @@ func (s *TestProject) CreatePaneWithCommands(paneName string, commands ...string
 	s.Tasks[paneName] = task
 	pane := paneName
 	return pane
-}
-
-func CreateWindowWithPanes(windowName string, panes ...TaskId) Window {
-	window := NewWindow(windowName)
-	window.Panes = panes
-	return window
 }
