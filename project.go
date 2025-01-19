@@ -11,7 +11,8 @@ type Command = string
 type Commands = []Command
 
 type Task struct {
-	Commands Commands
+	WorkingDirectory string `yaml:"working_dir,omitempty"`
+	Commands         Commands
 }
 
 type Project struct {

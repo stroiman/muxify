@@ -65,7 +65,7 @@ func (p *TestProject) ReplaceWindowNames(windowNames ...string) {
 }
 
 func (s *TestProject) CreatePaneWithCommands(paneName string, commands ...string) TaskId {
-	task := Task{Commands(commands)}
+	task := Task{Commands: Commands(commands)}
 	if s.Tasks == nil {
 		s.Tasks = make(map[string]Task)
 	}

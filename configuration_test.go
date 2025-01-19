@@ -78,7 +78,8 @@ var _ = Describe("Configuration", Ordered, func() {
 					Tasks: map[string]Task{
 						"editor": {Commands: []string{"nvim"}},
 						"test-runner": {
-							Commands: []string{"docker-compose up -d", "pnpm test:watch"},
+							WorkingDirectory: "sub-dir",
+							Commands:         []string{"docker-compose up -d", "pnpm test:watch"},
 						},
 						"dev": {},
 					},
@@ -171,6 +172,7 @@ projects:
         commands:
           - nvim
       test-runner:
+        working_dir: sub-dir
         commands:
           - docker-compose up -d
           - pnpm test:watch
