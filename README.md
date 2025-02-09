@@ -1,49 +1,60 @@
 # Muxify - tmux session manager
 
 This tool is supposed to help manage tmux sessions for larger projects, e.g.
-with multiple 'packages', e.g. front-end, back-end, and shared code, whach are
-all editied in individual editors, are started individually in separate
-terminals.
+with multiple 'packages', e.g. front-end, back-end, and shared code, which are
+all editied in individual editors, grouped into separate tmux windows.
 
-It should be possible to maintain multiple tmux sessions for one project. This
-is because a tmux session has a specific size matching the _smallest_ terminal
-that currently displays it.
+## What separates this from other tools?
 
-Sometimes you might want to have different tasks in different terminals with
-different sizes, e.g. in a multi-monitor setup.
+This tool embraces that your TMUX environment may change, but you generally have
+a _desired_ configuration that can be expressed in a configuration.
 
-You might switch between a laptop display and a multi-monitor setup, and have
-different views depending on the setup. Or depending on the current task, e.g.
-are tests in focus, or visual feedback for UI development
+This means this tool is designed to be executed while you have the session
+running. Any missing windows and panes will be recreated. Did you accidentally
+close a window you didn't mean to? Start the project, and the missing window
+will be recreated.
 
-The tool should support different layouts, and quickly switch between them
-without killing the running tasks.
+### Multiple layouts
 
-### Why this tool?
+This features is not yet implemented, but an original design goal was to support
+multiple layouts for different tasks, or different working environment.
 
-The need for this tool arose during my last larger project, where the code base
-consisted of individual modules for on 3 different front-ends, catering for 3
-different user roles. One common backend, and two modules with shared code; All
-needed to be started individually; and all with their own test suites.
+E.e., in my office environment, I have the desktop monitor and 2 external
+monitors. Here, I'd like to have the center monitor for my editor, and the other
+external monitof for feedback. Feedback could include one or more test runners
+and compilers. Thus, I would have test runner and editor on separate windows.
 
-I had first used tmuxinator, but it just didn't work - and went on to use
-tmux-resurrect. But now I kept all those processes alive when working on
-something else; just to avoid having to recreate the setup every time I would
-launch the project.
+But when just using the laptop, I'd want to have the test runner and editor as
+two separate panes in the same TMUX window.
 
-And neither of the tools helped me arrange stuff on multiple monitors; or adapt
-the layout depending on the task I was working on.
+So for a single configured project, you should be able to switch between
+different layouts.
 
-### Current state!
+### Why this tool
+
+I have tried other tools, e.g. tmuxinator the tmux-resurrect. 
+
+Tmuxinator, apart from being bugged[^1], was a one-time configuration. If you
+change the configuration, you need to completely kill the session, and restart. 
+
+Muxify can in that respect be described as a bug-free tmuxinator, that can apply
+configuration changes to an existing session.
+
+Tmux-resurrect served as a trusty replacement for tmuxinator for a long time.
+But I had a lot of projects each with their own setup. Resurrect restores _all_
+tmux sessions. The result was that I would have 10-20 tmux sessions running,
+when only a few were relevent.
+
+## Current state!
 
 tldr; It works, but configuration format _will_ change.
 
 - The configuration files doesn't yet support multiple layouts for a project.
-- Error messages are very poos.
+- Error messages are very poor.
 - There is no validation, e.g. a project and window names must be valie project
   and session names; but that is not validated when loading the configuration.
 
-#### Configuration file
+### Configuration file
 
 The tool is currently working, i.e. you can run it, it will read a configuration
 from `$XDG_CONFIG_HOME/muxify/projects.yaml` or fallback to
@@ -203,3 +214,9 @@ need to change. Added the ability to start multiple panes.
 
 Create an executable binary that reads configuration from a file, and I am now
 starting to use the tool.
+
+---
+
+[^1]: Sessions started with tmuxinator someimes ran into weird states where the
+    same app would be shown in multiple panes, or keyboard input would be
+    directed to multiple shells. I also saw extreme lag with grouped tmux sessions.
