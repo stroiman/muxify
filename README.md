@@ -122,14 +122,30 @@ projects:
           - test
 ```
 
-## Tips - the `m` command
+## Installation and usage.
 
-Currently, the tool only creates and configures sessions, windows, and panes on
-a tmux server; but it does not launch a client. I use the following shell
-script which automates launching a tmux client; or switching session if run from
-_inside_ an existing tmux session.
+There isn't an official distribution yet, so you need to install from sources.
+Go makes this easy:
 
-This script isn't _yet_ part of muxify, but should be.
+```sh
+> go install github.com/stroiman/muxify
+```
+
+Currently, there are no command line options, only the ability to launch a
+project:
+
+```sh
+> muxify <project name>
+```
+
+This command will create a session, windows, and panes as necessary; but doesn't
+actually start a tmux client.
+
+### Tips - the `m` command
+
+The following helper script embeds muxify into a flow with tmux client
+integration. It will launch a client connected to the session after creating it;
+or switch active session if executed from _within_ tmux itself.
 
 I call this `m` - and have manually created it in my search path.
 
