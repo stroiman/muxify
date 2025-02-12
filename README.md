@@ -4,7 +4,7 @@ This tool is supposed to help manage tmux sessions for larger projects, e.g.
 with multiple 'packages', e.g. front-end, back-end, and shared code, which are
 all editied in individual editors, grouped into separate tmux windows.
 
-## What separates this from other tools?
+## How is this different from other tools?
 
 This tool embraces that your TMUX environment may change, but you generally have
 a _desired_ configuration that can be expressed in a configuration.
@@ -98,57 +98,40 @@ This is written in Go
 - The code can be packaged into a compiled binary that can be distributed using
   native package managers.
 
-## Possible configuration properties
+## Configuration file
 
-NOTE: This is not the configuration format. This was originally written to
-indicate the intent of the tool; which hasn't changed. The current state of the
-project does not support the intended behaviour yet.
-
----
-
-This is just an example of where this might end up, but try to illustate the
-scenario of swithing between a laptop on the road, or at the desk with multiple
-monitors.
-
-When using multiple monitors, you might want to break out the tests to the other
-monitor, but on the road, you'd want the two to appear simultaneously.
+This is a simple example configuration file. More windows can easily be created
+by adding to the list.
 
 ```yaml
 projects:
-  - name: My project
-  - working_folder: $HOME/src/my-project
-  - tasks:
-    - tests: pnpm test
-    - edit: nvim .
-  - layouts:
-    - single_monitor:
-      - sessions:
-          my-project:
-          - windows:
-              main:
-                panes:
-                  - tasks:edit
-                  - tasks:tests
-    - multi_monitor:
-      - sessions:
-          my-project:
-            - windows:
-                editor:
-                  panes:
-                    - tasks:edit
-          my-project-tests:
-            - windows:
-                editor:
-                  panes:
-                    - tasks:tests
+  - name: muxify
+    working_dir: $HOME/src/muxify
+    tasks:
+      editor:
+        commands:
+          - nvim .
+      test:
+        commands:
+          - gow test
+    windows:
+      - name: Editor
+        layout: horizontal
+        panes:
+          - editor
+          - test
 ```
 
-## Tips
+## Tips - the `m` command
 
 Currently, the tool only creates and configures sessions, windows, and panes on
 a tmux server; but it does not launch a client. I use the following shell
 script which automates launching a tmux client; or switching session if run from
 _inside_ an existing tmux session.
+
+This script isn't _yet_ part of muxify, but should be.
+
+I call this `m` - and have manually created it in my search path.
 
 ```sh
 #!/bin/sh
