@@ -2,64 +2,75 @@ package main_test
 
 import (
 	"fmt"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"os/exec"
+	"testing"
 
 	. "github.com/stroiman/muxify"
+
+	g "github.com/onsi/gomega"
+	"github.com/stretchr/testify/suite"
 )
 
-var _ = Describe("Tmux", func() {
-	var server TmuxServer
+type TmuxTestSuite struct {
+	TmuxBaseTestSuite
+}
 
-	BeforeEach(func() {
-		server = MustCreateTestServer()
-	})
+func (s *TmuxTestSuite) TestRunningSessionsWhenServerIsNotStarted() {
+	s.server.SocketName = CreateRandomName()
+	sessions, err := s.server.GetRunningSessions()
+	s.Expect(sessions).To(g.BeEmpty())
+	s.Expect(err).ToNot(g.HaveOccurred())
+}
 
-	Describe("GetRunningSessions()", func() {
-		BeforeEach(func() {
-			server.SocketName = CreateRandomName()
-		})
+func TestTmux(t *testing.T) {
+	suite.Run(t, new(TmuxTestSuite))
+}
 
-		It("Should return an empty slice when no server has been started", func() {
-			sessions, err := server.GetRunningSessions()
-			Expect(sessions).To(BeEmpty())
-			Expect(err).ToNot(HaveOccurred())
-		})
-	})
+type TmuxRunningServerTestSuite struct {
+	TmuxBaseTestSuite
+	sessionName string
+}
 
-	var _ = Describe("Muxify", func() {
-		BeforeEach(func() {
-			output, err := server.Command("new-session", "-s", "test-session", "-d").Output()
-			if err != nil {
-				fmt.Println("Error!", string(output))
-			}
-			Expect(err).ToNot(HaveOccurred())
-		})
+func (s *TmuxRunningServerTestSuite) SetupTest() {
+	s.TmuxBaseTestSuite.SetupTest()
+	fmt.Println("Server", s.server)
+	s.sessionName = CreateRandomName()
+	output, err := s.server.Command("new-session", "-s", s.sessionName, "-d").Output()
+	if err != nil {
+		fmt.Println("Error!", string(output), err.Error())
+		if e, ok := err.(*exec.ExitError); ok {
+			fmt.Println("Stderr: ", string(e.Stderr))
+		}
+	}
+	s.Assert().NoError(err)
+	// s.Expect(err).ToNot(g.HaveOccurred())
+}
 
-		AfterEach(func() {
-			sessions, err := server.GetRunningSessions()
-			Expect(err).ToNot(HaveOccurred())
-			session, ok := TmuxSessions(sessions).FindByName("test-session")
-			if ok {
-				Expect(server.KillSession(session)).To(Succeed())
-			}
-		})
+func (s *TmuxRunningServerTestSuite) TearDownTest() {
+	sessions, err := s.server.GetRunningSessions()
+	s.Expect(err).ToNot(g.HaveOccurred())
+	session, ok := TmuxSessions(sessions).FindByName(s.sessionName)
+	if ok {
+		s.Expect(s.server.KillSession(session)).To(g.Succeed())
+	}
+}
 
-		It("Returns a slice containing at least one element", func() {
-			result, err := server.GetRunningSessions()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(result).To(ContainElement(HaveField("Name", "test-session")))
-		})
+func (s *TmuxRunningServerTestSuite) TestRunningSessionsHasAtLeastOneElement() {
+	result, err := s.server.GetRunningSessions()
+	s.Expect(err).ToNot(g.HaveOccurred())
+	s.Expect(result).To(g.ContainElement(g.HaveField("Name", s.sessionName)))
+}
 
-		It("Can be killed", func() {
-			result, err := server.GetRunningSessions()
-			Expect(err).ToNot(HaveOccurred())
-			session, _ := TmuxSessions(result).FindByName("test-session")
-			Expect(server.KillSession(session)).To(Succeed())
-			result, err = server.GetRunningSessions()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(result).ToNot(ContainElement(HaveField("Name", "test-session")))
-		})
-	})
-})
+func (s *TmuxRunningServerTestSuite) TestKillServer() {
+	result, err := s.server.GetRunningSessions()
+	s.Expect(err).ToNot(g.HaveOccurred())
+	session, _ := TmuxSessions(result).FindByName(s.sessionName)
+	s.Expect(s.server.KillSession(session)).To(g.Succeed())
+	result, err = s.server.GetRunningSessions()
+	s.Expect(err).ToNot(g.HaveOccurred())
+	s.Expect(result).ToNot(g.ContainElement(g.HaveField("Name", s.sessionName)))
+}
+
+func TestTmuxRunningServer(t *testing.T) {
+	suite.Run(t, new(TmuxRunningServerTestSuite))
+}

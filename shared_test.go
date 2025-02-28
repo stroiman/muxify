@@ -32,8 +32,9 @@ func MustCreateTestServer() TmuxServer {
 		panic(err)
 	}
 	configFile := filepath.Join(wd, "tmux.conf")
+	socketName := "test-socket-" + CreateRandomName()
 	return TmuxServer{
-		SocketName: "test-socket",
+		SocketName: socketName,
 		ConfigFile: configFile,
 	}
 }
