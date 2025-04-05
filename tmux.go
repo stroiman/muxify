@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os/exec"
@@ -59,14 +60,20 @@ func (c CmdExt) MustOutput() []byte {
 	return o
 }
 
-func parseLinesQuoted(output []byte) ([][]string, error) {
+func parseLineQuoted(line string) ([]string, error) {
+	if line[0] != '"' || line[len(line)-1] != '"' {
+		return nil, fmt.Errorf("Bad result from tmux: %s", line)
+	}
+	return strings.Split(string(line[1:len(line)-1]), `":"`), nil
+}
+
+func parseLinesQuoted(output []byte) (result [][]string, err error) {
 	lines := getLines(output)
-	result := make([][]string, len(lines))
+	result = make([][]string, len(lines))
 	for i, line := range lines {
-		if line[0] != '"' || line[len(line)-1] != '"' {
-			return [][]string{}, fmt.Errorf("Bad result from tmux: %s", line)
+		if result[i], err = parseLineQuoted(line); err != nil {
+			return nil, err
 		}
-		result[i] = strings.Split(string(line[1:len(line)-1]), `":"`)
 	}
 	return result, nil
 }
@@ -250,7 +257,7 @@ func (s TmuxServer) GetCurrentWindowIndexForSession(session TmuxSession) (res in
 
 func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows TmuxWindows, err error) {
 	var output []byte
-	output, err = s.Command("list-windows", "-t", session.Id, "-F", `"#{window_id}":"#{window_name}"`).
+	output, err = s.Command("list-windows", "-t", session.Id, "-F", `"#{window_id}":"#{window_name}":"#{window_index}"`).
 		Output()
 	if err != nil {
 		return
@@ -258,7 +265,12 @@ func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows TmuxWindo
 	lines, err := parseLinesQuoted(output)
 	windows = make([]TmuxWindow, len(lines))
 	for i, line := range lines {
-		windows[i] = TmuxWindow{TmuxTarget{s, line[0]}, line[1]}
+		var winIndex int
+		winIndex, err = strconv.Atoi(line[2])
+		if err != nil {
+			return
+		}
+		windows[i] = TmuxWindow{TmuxTarget{s, line[0]}, line[1], winIndex}
 	}
 	return
 }
@@ -311,20 +323,23 @@ func (s TmuxServer) CreateWindow(
 	name string,
 	workingDir string,
 ) (*TmuxWindow, error) {
-	args := []string{"new-window", "-n", name, "-F", "#{window_id}", "-P"}
+	args := []string{"new-window", "-n", name, "-F", `"#{window_id}":"#{window_index}"`, "-P"}
 	args = append(args, target.createArgs()...)
 	if workingDir != "" {
 		args = append(args, "-c", workingDir)
 	}
-	output, err := s.Command(args...).Output()
+	output, err1 := s.Command(args...).Output()
+	parameters, err2 := parseLineQuoted(sanitizeOutput(output))
+	winIndex, err3 := strconv.Atoi(parameters[1])
 	window := TmuxWindow{
 		TmuxTarget{
 			s,
-			sanitizeOutput(output),
+			parameters[0],
 		},
 		name,
+		winIndex,
 	}
-	return &window, err
+	return &window, errors.Join(err1, err2, err3)
 }
 
 func (s TmuxServer) MoveWindow(
@@ -409,7 +424,8 @@ func (p TmuxPanes) FindByTitle(title string) *TmuxPane {
 
 type TmuxWindow struct {
 	TmuxTarget
-	Name string
+	Name           string
+	LastKnownIndex int
 }
 
 func (w TmuxWindow) SplitHorizontal(name string, workingDir string) (TmuxPane, error) {
