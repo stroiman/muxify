@@ -2,21 +2,17 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-type TmuxServer struct {
-	ControlMode bool
-	SocketName  string
-	ConfigFile  string
-}
-
-type TmuxTarget struct {
-	TmuxServer
-	Id string
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
 
 type TmuxSession struct {
@@ -29,30 +25,6 @@ type PaneLayout struct {
 	Left   int
 	Right  int
 }
-
-type TmuxPane struct {
-	TmuxTarget
-	Title  string
-	Layout PaneLayout
-}
-
-type TmuxWindow struct {
-	TmuxTarget
-	Name string
-}
-
-type TmuxWindows []TmuxWindow
-
-func (ws TmuxWindows) FindByName(name string) (TmuxWindow, bool) {
-	for _, window := range ws {
-		if window.Name == name {
-			return window, true
-		}
-	}
-	return TmuxWindow{}, false
-}
-
-type TmuxSessions []TmuxSession
 
 // sanitizeOutput removes new-line character codes. This is useful for parsing
 // the standard out of a command that will normally be terminated with a
@@ -75,10 +47,6 @@ func getLines(output []byte) []string {
 	return RemoveEmptyLines(strings.Split(string(output), "\n"))
 }
 
-func (s TmuxServer) KillServer() error {
-	return s.Command("kill-server").Run()
-}
-
 type CmdExt struct {
 	*exec.Cmd
 }
@@ -89,46 +57,6 @@ func (c CmdExt) MustOutput() []byte {
 		panic(err)
 	}
 	return o
-}
-
-func (s TmuxServer) Command(arg ...string) CmdExt {
-	c := make([]string, 0)
-	if s.ControlMode {
-		c = append(c, "-C")
-	}
-	if s.SocketName != "" {
-		c = append(c, "-L", s.SocketName)
-	}
-	if s.ConfigFile != "" {
-		c = append(c, "-f", s.ConfigFile)
-	}
-	c = append(c, arg...)
-	cmd := exec.Command("tmux", c...)
-	return CmdExt{cmd}
-}
-
-func (server TmuxServer) StartSession(name string, arg ...string) (TmuxSession, error) {
-	c := append([]string{"new-session", "-F", "#{session_id}", "-P", "-d"}, arg...)
-	out, err := server.Command(c...).Output()
-	if err != nil {
-		return TmuxSession{}, err
-	} else {
-		return TmuxSession{
-			TmuxTarget{
-				server,
-				sanitizeOutput(out),
-			},
-			name,
-		}, nil
-	}
-}
-
-func (s TmuxServer) StartSessionByNameInDir(name string, dir string) (TmuxSession, error) {
-	return s.StartSession(name, "-s", name, "-c", dir)
-}
-
-func (s TmuxServer) StartSessionByName(name string) (TmuxSession, error) {
-	return s.StartSession(name, "-s", name)
 }
 
 // TODO: This pattern requires extending the regexp every time another parameter
@@ -164,6 +92,59 @@ func parseDimensions(input string) (PaneLayout, error) {
 	return PaneLayout{top, bottom, left, right}, nil
 }
 
+/* -------- TmuxServer -------- */
+
+type TmuxServer struct {
+	ControlMode bool
+	SocketName  string
+	ConfigFile  string
+}
+
+func (s TmuxServer) KillServer() error {
+	return s.Command("kill-server").Run()
+}
+
+func (s TmuxServer) Command(arg ...string) CmdExt {
+	c := make([]string, 0)
+	if s.ControlMode {
+		c = append(c, "-C")
+	}
+	if s.SocketName != "" {
+		c = append(c, "-L", s.SocketName)
+	}
+	if s.ConfigFile != "" {
+		c = append(c, "-f", s.ConfigFile)
+	}
+	c = append(c, arg...)
+	slog.Info("Running tmux command", "options", c)
+	cmd := exec.Command("tmux", c...)
+	return CmdExt{cmd}
+}
+
+func (server TmuxServer) StartSession(name string, arg ...string) (TmuxSession, error) {
+	c := append([]string{"new-session", "-F", "#{session_id}", "-P", "-d"}, arg...)
+	out, err := server.Command(c...).Output()
+	if err != nil {
+		return TmuxSession{}, err
+	} else {
+		return TmuxSession{
+			TmuxTarget{
+				server,
+				sanitizeOutput(out),
+			},
+			name,
+		}, nil
+	}
+}
+
+func (s TmuxServer) StartSessionByNameInDir(name string, dir string) (TmuxSession, error) {
+	return s.StartSession(name, "-s", name, "-c", dir)
+}
+
+func (s TmuxServer) StartSessionByName(name string) (TmuxSession, error) {
+	return s.StartSession(name, "-s", name)
+}
+
 func (s TmuxServer) GetRunningSessions() ([]TmuxSession, error) {
 	stdOut, err := s.Command("start", ";", "list-sessions", "-F", `"#{session_id}":"#{session_name}"`).
 		Output()
@@ -195,6 +176,10 @@ func (s TmuxServer) KillSession(session TmuxSession) error {
 	return s.Command("kill-session", "-t", session.Id).Run()
 }
 
+/* -------- TmuxSessions -------- */
+
+type TmuxSessions []TmuxSession
+
 func (s TmuxSessions) FindByName(name string) (session TmuxSession, ok bool) {
 	for _, session := range s {
 		if session.Name == name {
@@ -204,15 +189,11 @@ func (s TmuxSessions) FindByName(name string) (session TmuxSession, ok bool) {
 	return TmuxSession{}, false
 }
 
-type TmuxPanes []TmuxPane
+/* -------- TmuxTarget -------- */
 
-func (p TmuxPanes) FindByTitle(title string) *TmuxPane {
-	for _, pane := range p {
-		if pane.Title == title {
-			return &pane
-		}
-	}
-	return nil
+type TmuxTarget struct {
+	TmuxServer
+	Id string
 }
 
 func (s TmuxTarget) runCommandAndParseOutputFormat(command ...string) ([][]string, error) {
@@ -389,12 +370,6 @@ func (s TmuxTarget) RunShellCommand(shellCommand string) error {
 	return s.Command("send-keys", "-t", s.Id, shellCommand+"\n").Run()
 }
 
-func must(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
 func (s TmuxTarget) MustRunShellCommand(shellCommand string) {
 	must(s.RunShellCommand(shellCommand))
 }
@@ -408,12 +383,40 @@ func (s TmuxTarget) GetFirstPane() (pane TmuxPane, err error) {
 	return
 }
 
+/* -------- TmuxPane -------- */
+
+type TmuxPane struct {
+	TmuxTarget
+	Title  string
+	Layout PaneLayout
+}
+
 func (p TmuxPane) Rename(name string) (TmuxPane, error) {
 	err := p.Command("select-pane", "-t", p.Id, "-T", name).Run()
 	if err == nil {
 		p.Title = name
 	}
 	return p, err
+}
+
+/* -------- TmuxPanes -------- */
+
+type TmuxPanes []TmuxPane
+
+func (p TmuxPanes) FindByTitle(title string) *TmuxPane {
+	for _, pane := range p {
+		if pane.Title == title {
+			return &pane
+		}
+	}
+	return nil
+}
+
+/* -------- TmuxWindow -------- */
+
+type TmuxWindow struct {
+	TmuxTarget
+	Name string
 }
 
 func (w TmuxWindow) SplitHorizontal(name string, workingDir string) (TmuxPane, error) {
@@ -449,4 +452,17 @@ func (w TmuxWindow) SplitVertical(name string, workingDir string) (TmuxPane, err
 func (w TmuxWindow) Select() error {
 	_, err := w.Command("select-window", "-t", w.Id).Output()
 	return err
+}
+
+/* -------- TmuxWindows -------- */
+
+type TmuxWindows []TmuxWindow
+
+func (ws TmuxWindows) FindByName(name string) (TmuxWindow, bool) {
+	for _, window := range ws {
+		if window.Name == name {
+			return window, true
+		}
+	}
+	return TmuxWindow{}, false
 }
