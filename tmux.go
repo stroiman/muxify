@@ -345,6 +345,16 @@ func (s TmuxServer) CreateWindow(
 func (s TmuxServer) MoveWindow(
 	window *TmuxWindow,
 	target WindowTarget) error {
+	if window.Id == target.target.Id {
+		return nil
+	}
+	if !target.before {
+		movedWinIndex, err1 := window.Index()
+		targetWinIndex, err2 := target.target.Index()
+		if movedWinIndex == (targetWinIndex+1) && err1 == nil && err2 == nil {
+			return nil
+		}
+	}
 	args := []string{"move-window", "-s", window.Id}
 	args = append(args, target.createArgs()...)
 	return s.Command(args...).Run()
