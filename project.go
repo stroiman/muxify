@@ -222,5 +222,10 @@ func (p Project) EnsureStarted(server TmuxServer) (session TmuxSession, err erro
 			err = ensureWindowHasPanes(existingWindow, p, configuredWindow)
 		}
 	}
+
+	if len(p.Windows) > 0 {
+		targetTmuxWindow := windowMap[p.Windows[0].id]
+		targetTmuxWindow.Select()
+	}
 	return
 }

@@ -257,6 +257,23 @@ func (s TmuxTarget) MustGetPanes() TmuxPanes {
 	return panes
 }
 
+func (s TmuxServer) GetCurrentWindowIndexForSession(session TmuxSession) (res int, err error) {
+	// output, err = s.Command("list-windows", "-t", session.Id, "-F", `"#{window_id}":"#{window_name}"`).
+	var output []byte
+	output, err = s.Command("list-windows",
+		"-f", "#{==:#{window_index},#{active_window_index}}", "-F", "#{window_index}").Output()
+	if err != nil {
+		return
+	}
+	lines := getLines(output)
+	if len(lines) != 1 {
+		err = fmt.Errorf("Unexpected result from tmux command, %v", lines)
+	} else {
+		res, err = strconv.Atoi(lines[0])
+	}
+	return
+}
+
 func (s TmuxServer) GetWindowsForSession(session TmuxSession) (windows TmuxWindows, err error) {
 	var output []byte
 	output, err = s.Command("list-windows", "-t", session.Id, "-F", `"#{window_id}":"#{window_name}"`).
@@ -427,4 +444,9 @@ func (w TmuxWindow) SplitVertical(name string, workingDir string) (TmuxPane, err
 		pane, err = pane.Rename(name)
 	}
 	return pane, err
+}
+
+func (w TmuxWindow) Select() error {
+	_, err := w.Command("select-window", "-t", w.Id).Output()
+	return err
 }

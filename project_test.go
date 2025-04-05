@@ -23,9 +23,6 @@ type ProjectTestSuite struct {
 }
 
 func (s *ProjectTestSuite) Expect(actual interface{}, extra ...interface{}) Assertion {
-	if s.gomega == nil {
-		s.gomega = gomega.NewWithT(s.T())
-	}
 	return s.gomega.Expect(actual, extra...)
 }
 
@@ -37,6 +34,7 @@ func (s *ProjectTestSuite) Eventually(actual interface{}, extra ...interface{}) 
 }
 
 func (s *ProjectTestSuite) SetupTest() {
+	s.gomega = gomega.NewWithT(s.T())
 	s.knownSessions = nil
 }
 
@@ -134,7 +132,6 @@ func (s *ProjectEnsureStartedTestSuite) TestWorkingDirectoryMultipleWindows() {
 }
 
 func (s *ProjectEnsureStartedTestSuite) TestWorkingDirectoryMultiplePanes() {
-
 	proj := CreateProject()
 	proj.AppendNamedWindow("Window-1").
 		AppendPane(proj.CreatePaneWithCommands("pane-1")).
@@ -296,6 +293,8 @@ func (s *ProjectEnsureStartedTestSuite) TestMultipleWindows() {
 		HaveField("Name", "Window-2"),
 		HaveField("Name", "Window-3"),
 	))
+
+	s.Expect(s.server.GetCurrentWindowIndexForSession(session)).To(Equal(0))
 }
 
 func (s *ProjectEnsureStartedTestSuite) TestRecreateMissingWindowsOnRunningSession() {
