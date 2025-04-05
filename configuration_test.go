@@ -50,6 +50,7 @@ func (s *ConfigurationTestSuite) SetupSuite() {
 }
 
 func (s *ConfigurationTestSuite) SetupTest() {
+	s.GomegaSuite.SetupTest()
 	s.fakeOs = FakeOS{
 		fstest.MapFS{},
 		map[string]string{"HOME": "/users/foo"},

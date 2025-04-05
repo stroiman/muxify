@@ -12,18 +12,20 @@ type GomegaSuite struct {
 	gomega gomega.Gomega
 }
 
+func (s *GomegaSuite) Expect(actual interface{}, extra ...interface{}) gomega.Assertion {
+	return s.gomega.Expect(actual, extra...)
+}
+
+func (s *GomegaSuite) SetupTest() {
+	s.gomega = gomega.NewWithT(s.T())
+}
+
 type TmuxBaseTestSuite struct {
 	GomegaSuite
 	server TmuxServer
 }
 
 func (s *TmuxBaseTestSuite) SetupTest() {
+	s.GomegaSuite.SetupTest()
 	s.server = MustCreateTestServer()
-}
-
-func (s *GomegaSuite) Expect(actual interface{}, extra ...interface{}) gomega.Assertion {
-	if s.gomega == nil {
-		s.gomega = gomega.NewWithT(s.T())
-	}
-	return s.gomega.Expect(actual, extra...)
 }
