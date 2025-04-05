@@ -59,21 +59,14 @@ func (c CmdExt) MustOutput() []byte {
 	return o
 }
 
-// TODO: This pattern requires extending the regexp every time another parameter
-// is needed. But capture groups don't support multiplicity. e.g. (pattern)*
-// captures only once, no matter how many repetitions the pattern has.
-var lineParser *regexp.Regexp = regexp.MustCompile(`^"([^"]+)":"([^"]+)"(?::"([^"]+)")?$`)
-
 func parseLinesQuoted(output []byte) ([][]string, error) {
 	lines := getLines(output)
 	result := make([][]string, len(lines))
 	for i, line := range lines {
-		submatch := lineParser.FindStringSubmatch(line)
-		if submatch == nil {
+		if line[0] != '"' || line[len(line)-1] != '"' {
 			return [][]string{}, fmt.Errorf("Bad result from tmux: %s", line)
 		}
-
-		result[i] = submatch[1:]
+		result[i] = strings.Split(string(line[1:len(line)-1]), `":"`)
 	}
 	return result, nil
 }
