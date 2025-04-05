@@ -116,7 +116,7 @@ func (s TmuxServer) Command(arg ...string) CmdExt {
 		c = append(c, "-f", s.ConfigFile)
 	}
 	c = append(c, arg...)
-	slog.Info("Running tmux command", "options", c)
+	slog.Debug("Running tmux command", "options", c)
 	cmd := exec.Command("tmux", c...)
 	return CmdExt{cmd}
 }

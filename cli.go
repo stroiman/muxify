@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"strings"
 )
@@ -26,14 +28,23 @@ type CLI struct {
 }
 
 func (cli CLI) Run(args []string) error {
-	if len(args) < 2 {
-		return errors.New("No argument")
+	var verbose bool
+	flagSet := flag.NewFlagSet("muxify", flag.ExitOnError)
+	flagSet.BoolVar(&verbose, "v", false, "Verbose output logging")
+	if err := flagSet.Parse(args[1:]); err != nil {
+		return err
+	}
+	if verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	} else {
+		slog.SetLogLoggerLevel(slog.LevelWarn)
 	}
 	configuration, err := ReadConfiguration(cli)
 	if err != nil {
 		return err
 	}
-	if project, ok := configuration.GetProject(args[1]); ok {
+	projectName := flagSet.Arg(0)
+	if project, ok := configuration.GetProject(projectName); ok {
 		return cli.Runner.Run(project)
 	} else {
 		var b strings.Builder
