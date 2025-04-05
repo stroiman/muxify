@@ -428,6 +428,17 @@ type TmuxWindow struct {
 	LastKnownIndex int
 }
 
+func (w TmuxWindow) Index() (res int, err error) {
+	var output []byte
+	output, err = w.Command("list-windows",
+		"-f", fmt.Sprintf("#{==:#{window_id},%s}", w.Id), "-F", "#{window_index}").Output()
+	if err != nil {
+		return
+	}
+	w.LastKnownIndex, err = strconv.Atoi(sanitizeOutput(output))
+	return w.LastKnownIndex, err
+}
+
 func (w TmuxWindow) SplitHorizontal(name string, workingDir string) (TmuxPane, error) {
 	args := []string{"split-window", "-h", "-t", w.Id, "-P", "-F", "#{pane_id}"}
 	if workingDir != "" {

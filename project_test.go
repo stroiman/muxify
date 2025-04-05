@@ -288,13 +288,18 @@ func (s *ProjectEnsureStartedTestSuite) TestMultipleWindows() {
 		"Window-3",
 	)
 	session := s.handleProjectStart(proj.EnsureStarted(s.server))
-	s.Expect(s.server.GetWindowsForSession(session)).To(HaveExactElements(
+	windows, err := s.server.GetWindowsForSession(session)
+	s.Expect(err).ToNot(HaveOccurred())
+	s.Expect(windows).To(HaveExactElements(
 		HaveField("Name", "Window-1"),
 		HaveField("Name", "Window-2"),
 		HaveField("Name", "Window-3"),
 	))
 
 	s.Expect(s.server.GetCurrentWindowIndexForSession(session)).To(Equal(0))
+	s.Expect(windows[0].Index()).To(Equal(0))
+	s.Expect(windows[1].Index()).To(Equal(1))
+	s.Expect(windows[2].Index()).To(Equal(2))
 }
 
 func (s *ProjectEnsureStartedTestSuite) TestRecreateMissingWindowsOnRunningSession() {
