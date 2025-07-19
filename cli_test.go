@@ -2,6 +2,8 @@
 package main_test
 
 import (
+	"bytes"
+	"io"
 	"testing"
 	"testing/fstest"
 
@@ -10,36 +12,10 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestCli(t *testing.T) {
-	fakeOs := FakeOS{
-		files: fstest.MapFS{"/users/foo/.config/muxify/projects.yaml": &fstest.MapFile{
-			Data: []byte(configuration),
-		}},
-		env: map[string]string{"HOME": "/users/foo"},
-	}
+func TestCliLaunchProject(t *testing.T) {
 	controller := gomock.NewController(t)
 	mock := NewMockRunner(controller)
-	cli := CLI{mock, fakeOs}
-	call := mock.EXPECT().Run(gomock.Any())
-	var actualProject Project
-	call.Do(func(project Project) {
-		actualProject = project
-	})
-	cli.Run([]string{"muxify", "Project 1"})
-	controller.Finish()
-	assert.Equal(t, Project{Name: "Project 1"}, actualProject)
-}
-
-func TestCliWithRunSubcommand(t *testing.T) {
-	fakeOs := FakeOS{
-		files: fstest.MapFS{"/users/foo/.config/muxify/projects.yaml": &fstest.MapFile{
-			Data: []byte(configuration),
-		}},
-		env: map[string]string{"HOME": "/users/foo"},
-	}
-	controller := gomock.NewController(t)
-	mock := NewMockRunner(controller)
-	cli := CLI{mock, fakeOs}
+	cli := CLI{mock, fakeOs, io.Discard}
 	call := mock.EXPECT().Run(gomock.Any())
 	var actualProject Project
 	call.Do(func(project Project) {
@@ -50,27 +26,35 @@ func TestCliWithRunSubcommand(t *testing.T) {
 	assert.Equal(t, Project{Name: "Project 1"}, actualProject)
 }
 
-func TestCliWithVerbose(t *testing.T) {
-	fakeOs := FakeOS{
-		files: fstest.MapFS{"/users/foo/.config/muxify/projects.yaml": &fstest.MapFile{
-			Data: []byte(configuration),
-		}},
-		env: map[string]string{"HOME": "/users/foo"},
-	}
+func TestCliLaunchProjectWithVerbose(t *testing.T) {
 	controller := gomock.NewController(t)
 	mock := NewMockRunner(controller)
-	cli := CLI{mock, fakeOs}
+	cli := CLI{mock, fakeOs, io.Discard}
 	call := mock.EXPECT().Run(gomock.Any())
 	var actualProject Project
 	call.Do(func(project Project) {
 		actualProject = project
 	})
-	cli.Run([]string{"muxify", "-v", "Project 1"})
+	cli.Run([]string{"muxify", "-v", "launch", "Project 1"})
 	controller.Finish()
 	assert.Equal(t, Project{Name: "Project 1"}, actualProject)
+}
+
+func TestCliListProjects(t *testing.T) {
+	var b bytes.Buffer
+	cli := CLI{nil, fakeOs, &b}
+	cli.Run([]string{"muxify", "list"})
+	assert.Equal(t, "Project 1\nProject 2\n", b.String())
 }
 
 var configuration = `projects:
   - name: Project 1
   - name: Project 2
 `
+
+var fakeOs = FakeOS{
+	files: fstest.MapFS{"/users/foo/.config/muxify/projects.yaml": &fstest.MapFile{
+		Data: []byte(configuration),
+	}},
+	env: map[string]string{"HOME": "/users/foo"},
+}

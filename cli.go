@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -26,6 +27,7 @@ type Runner interface {
 type CLI struct {
 	Runner
 	OS
+	Stdout io.Writer
 }
 
 func (cli CLI) startProject(projectName string) error {
@@ -57,19 +59,21 @@ func (cli CLI) Run(args []string) error {
 				slog.SetLogLoggerLevel(slog.LevelWarn)
 			}
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			projectName := args[0]
-			err = cli.startProject(projectName)
-		},
-		Deprecated: "Use the 'run' command to start a project",
-		Args:       cobra.ExactArgs(1),
+		Args: cobra.NoArgs,
 	}
-	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable debug logging")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable debug logging")
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "list",
 		Short: "List the available configurations",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("LIST!")
+			var conf MuxifyConfiguration
+			conf, err = ReadConfiguration(cli)
+			if err != nil {
+				return
+			}
+			for _, p := range conf.Projects {
+				fmt.Fprintf(cli.Stdout, "%s\n", p.Name)
+			}
 		},
 	})
 	rootCmd.AddCommand(&cobra.Command{
@@ -100,7 +104,7 @@ func (o RealOS) LookupEnv(name string) (string, bool) {
 }
 
 func main() {
-	err := CLI{DefaultRunner{}, RealOS{}}.Run(os.Args)
+	err := CLI{DefaultRunner{}, RealOS{}, os.Stdout}.Run(os.Args)
 	if err == nil {
 		os.Exit(0)
 	} else {
