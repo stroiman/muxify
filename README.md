@@ -1,8 +1,10 @@
 # Muxify - tmux session manager
 
-This tool is supposed to help manage tmux sessions for larger projects, e.g.
+This tool is designed to help manage tmux sessions for larger projects, e.g.
 with multiple 'packages', e.g. front-end, back-end, and shared code, which are
 all editied in individual editors, grouped into separate tmux windows.
+
+All combined with test runners in watch mode, development web servers, etc.
 
 ## How is this different from other tools?
 
@@ -21,7 +23,7 @@ multiple layouts for different tasks, or different working environment.
 
 E.e., in my office environment, I have the desktop monitor and 2 external
 monitors. Here, I'd like to have the center monitor for my editor, and the other
-external monitof for feedback. Feedback could include one or more test runners
+external monitor for feedback. Feedback could include one or more test runners
 and compilers. Thus, I would have test runner and editor on separate windows.
 
 But when just using the laptop, I'd want to have the test runner and editor as
@@ -51,7 +53,7 @@ tldr; It works, but configuration format _will_ change.
 
 - The configuration files doesn't yet support multiple layouts for a project.
 - Error messages are very poor.
-- There is no validation, e.g. a project and window names must be valie project
+- There is no validation, e.g. a project and window names must be valid project
   and session names; but that is not validated when loading the configuration.
 
 ### Configuration file
@@ -75,6 +77,7 @@ You define 3 different concepts
   - Development web server
   - Compiler running in watch mode, e.g. for TypeScript, `tsc -w`
   - A test runner in watch mode
+  - Log file viewer, e.g., `tail -f logfile`
 - A layout
   - A configuration for the different tasks, and how they are organised in
     sessions, windows, and panes.
@@ -135,13 +138,18 @@ Currently, there are no command line options, only the ability to launch a
 project:
 
 ```sh
-> muxify <project name>
+> muxify launch <project name>
 ```
 
 This command will create a session, windows, and panes as necessary; but doesn't
 actually start a tmux client.
 
-### Tips - the `m` command
+### Tips 
+
+The `m` shell script can help launch projects, and switching projects from
+_inside_ tmux requires very little configuration.
+
+#### Creating the `m` command
 
 The following helper script embeds muxify into a flow with tmux client
 integration. It will launch a client connected to the session after creating it;
@@ -153,7 +161,7 @@ I call this `m` - and have manually created it in my search path.
 #!/bin/sh
 
 set -xe
-muxify $1 
+muxify launch $1 
 
 if [ -z "$TMUX" ]; then
   tmux attach -t $1
@@ -161,6 +169,26 @@ else
   tmux switch-client -t $1
 fi
 ```
+
+Remember to assign execute permissions, e.g., `chmod +x m`
+
+#### Select a muxify project directly in tmux
+
+If you add the following to your tmux configuration files (e.g.,
+`$HOME/.tmux.conf`), you can select and launch configured sessions directly from
+inside tmux.
+
+```
+bind m display-popup -E 'muxify list | fzf --reverse | xargs m '
+```
+
+This calls `muxify list` to list the available projects, and use `fzf` to allow
+you to interactively select one. The result is passed to the `m` command created
+in the previous section.
+
+This depends on [fzf], so be sure to install it if you don't have it already.
+
+[fzf]: https://junegunn.github.io/fzf/
 
 ## Note about the tests
 
@@ -213,6 +241,11 @@ need to change. Added the ability to start multiple panes.
 
 Create an executable binary that reads configuration from a file, and I am now
 starting to use the tool.
+
+### July 19th 2025 - Refactor CLI parsing
+
+After having used the tool for a long time, I decided to add command parsing to
+the CLI to help build better integration _inside_ tmux.
 
 ---
 
