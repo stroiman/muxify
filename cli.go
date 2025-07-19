@@ -2,12 +2,13 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 type DefaultRunner struct {
@@ -27,23 +28,11 @@ type CLI struct {
 	OS
 }
 
-func (cli CLI) Run(args []string) error {
-	var verbose bool
-	flagSet := flag.NewFlagSet("muxify", flag.ExitOnError)
-	flagSet.BoolVar(&verbose, "v", false, "Verbose output logging")
-	if err := flagSet.Parse(args[1:]); err != nil {
-		return err
-	}
-	if verbose {
-		slog.SetLogLoggerLevel(slog.LevelDebug)
-	} else {
-		slog.SetLogLoggerLevel(slog.LevelWarn)
-	}
+func (cli CLI) startProject(projectName string) error {
 	configuration, err := ReadConfiguration(cli)
 	if err != nil {
 		return err
 	}
-	projectName := flagSet.Arg(0)
 	if project, ok := configuration.GetProject(projectName); ok {
 		return cli.Runner.Run(project)
 	} else {
@@ -54,6 +43,50 @@ func (cli CLI) Run(args []string) error {
 		}
 		return errors.New(b.String())
 	}
+}
+
+func (cli CLI) Run(args []string) error {
+	var verbose bool
+	var err error
+	rootCmd := &cobra.Command{
+		Short: "Muxify - automate tmux",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if verbose {
+				slog.SetLogLoggerLevel(slog.LevelDebug)
+			} else {
+				slog.SetLogLoggerLevel(slog.LevelWarn)
+			}
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			projectName := args[0]
+			err = cli.startProject(projectName)
+		},
+		Deprecated: "Use the 'run' command to start a project",
+		Args:       cobra.ExactArgs(1),
+	}
+	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable debug logging")
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "list",
+		Short: "List the available configurations",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("LIST!")
+		},
+	})
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "launch",
+		Short: "Launch a project",
+		Long:  "Launch a project, creating a tmux session if none exists, or potentially recreates closed panes and windows if the session exists.",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			projectName := args[0]
+			err = cli.startProject(projectName)
+		},
+	})
+	rootCmd.SetArgs(args[1:])
+	if exErr := rootCmd.Execute(); exErr != nil {
+		return exErr
+	}
+	return err
 }
 
 type RealOS struct{}
