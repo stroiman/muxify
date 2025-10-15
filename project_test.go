@@ -90,7 +90,7 @@ func (s *ProjectEnsureStartedTestSuite) TestStartProjectWithOnePane() {
 
 	s.Expect(
 		session.GetPanes(),
-	).To(HaveExactElements(HaveField("Id", MatchRegexp("^\\%\\d+$"))))
+	).To(HaveExactElements(HaveField("Id", MatchRegexp(`^\%\d+$`))))
 }
 
 func (s *ProjectEnsureStartedTestSuite) TestWorkingDirectory() {
@@ -473,13 +473,13 @@ func (s *ProjectEnsureStartedTestSuite) TestVerifyFirstPanesDoesntRunTwiceOnRest
 }
 
 func BeStarted() types.GomegaMatcher {
-	return HaveField("Id", MatchRegexp("^\\$\\d+"))
+	return HaveField("Id", MatchRegexp(`^\$\d+`))
 }
 
 func (s *ProjectTestSuite) getOutputEvents(lines <-chan string) <-chan TmuxOutputEvent {
 
 	c := make(chan TmuxOutputEvent)
-	r := regexp.MustCompile("^\\%output ([^ ]+) (.*)")
+	r := regexp.MustCompile(`^\%output ([^ ]+) (.*)`)
 	go func() {
 		defer close(c)
 		for line := range lines {
@@ -503,7 +503,7 @@ func (s *ProjectTestSuite) getOutputLinesFromEvents(events <-chan TmuxOutputEven
 		var buffer string
 		for event := range events {
 			buffer = buffer + event.Data
-			lines := strings.Split(buffer, "\\015\\012")
+			lines := strings.Split(buffer, `\015\012`)
 			for i, line := range lines {
 				if i == len(lines)-1 {
 					buffer = line
@@ -512,7 +512,7 @@ func (s *ProjectTestSuite) getOutputLinesFromEvents(events <-chan TmuxOutputEven
 				}
 			}
 		}
-		lines := RemoveEmptyLines(strings.Split(buffer, "\\015\\012"))
+		lines := RemoveEmptyLines(strings.Split(buffer, `\015\012`))
 		for _, line := range lines {
 			c <- line
 		}
