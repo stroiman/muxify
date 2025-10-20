@@ -52,20 +52,12 @@ when only a few were relevent.
 tldr; It works, but configuration format _will_ change.
 
 - The configuration files doesn't yet support multiple layouts for a project.
-- Error messages are very poor.
+- Error messages are notoriously poor.
 - There is no validation, e.g. a project and window names must be valid project
   and session names; but that is not validated when loading the configuration.
 
-### Configuration file
-
-The tool is currently working, i.e. you can run it, it will read a configuration
-from `$XDG_CONFIG_HOME/muxify/projects.yaml` or fallback to
-`$HOME/.config/muxify/projects.yaml`, and initialise a tmux session. The tool
-will not start a client, see the [tips](#Tips) below.
-
-Error messages are also notoriously poor, and there is little validation of
-configuration file. E.g. a project name _must_ be a valid tmux session name; but
-there is no validation of that yet.
+When starting a valid "project", muxify will create a tmux session, but it will
+not launch a tmux client. See the [tips](#Tips) below.
 
 ## General idea
 
@@ -103,10 +95,17 @@ This is written in Go
 
 ## Configuration file
 
-This is a simple example configuration file. More windows can easily be created
-by adding to the list.
+Configuration will be read from `$XDG_CONFIG_HOME/muxify/` or fallback to
+`$HOME/.config/muxify/`, and initialise a tmux session. The tool will not start
+a client
+
+### Single file configuration
+
+A single configuration file, `projects.yaml` can contain multiple project
+configurations.
 
 ```yaml
+# $HOME/.config/muxify/projects.yaml
 projects:
   - name: muxify
     working_dir: $HOME/src/muxify
@@ -116,14 +115,43 @@ projects:
           - nvim .
       test:
         commands:
-          - gow test
+          - pnpm test
+      dev-server:
+        commands:
+          - pnpm dev
     windows:
       - name: Editor
         layout: horizontal
         panes:
           - editor
           - test
+      - name: Dev-server
+        panes:
+          - dev-server
 ```
+
+### Multi-file configuration
+
+Instead of having one large configuration file, you can create multiple
+configuration files.
+
+The filename is not used, but the file name `projects.yaml` is still reserved
+for multiple project configuration. This might be removed as default behaviour
+in the future.
+
+```yaml
+# $HOME/.config/muxyfy/project1.yaml
+name: project1
+working_dir: $HOME/src/project-1
+tasks:
+  # ...
+windows:
+  # ...
+```
+
+> [!CAUTION]
+> Multiple files can specify the same project name. There is no explicit
+> handling of this, and the behavior is not defined.
 
 ## Installation and usage.
 
@@ -144,7 +172,7 @@ project:
 This command will create a session, windows, and panes as necessary; but doesn't
 actually start a tmux client.
 
-### Tips 
+## Tips 
 
 The `m` shell script can help launch projects, and switching projects from
 _inside_ tmux requires very little configuration.
@@ -242,13 +270,19 @@ need to change. Added the ability to start multiple panes.
 Create an executable binary that reads configuration from a file, and I am now
 starting to use the tool.
 
-### July 19th 2025 - Refactor CLI parsing
+### [July 19th 2025 - Refactor CLI parsing](https://github.com/stroiman/muxify/blob/main/devlog/Part7.md)
 
 After having used the tool for a long time, I decided to add command parsing to
 the CLI to help build better integration _inside_ tmux.
 
+### [October 20th - Multi-config file support](https://github.com/stroiman/muxify/blob/main/devlog/Part8.md)
+
+My projects file was growing, so I wanted to improve the configuration
+experience. First step was having one file pr. project.
+
 ---
 
-[^1]: Sessions started with tmuxinator someimes ran into weird states where the
-    same app would be shown in multiple panes, or keyboard input would be
-    directed to multiple shells. I also saw extreme lag with grouped tmux sessions.
+[^1]: Sessions created by tmuxinator would sometimes enter a weird states where
+    the same app would be shown in multiple panes, or keyboard input would be
+    directed to multiple shells. Grouped tmux sessions were also lagging
+    massively.
