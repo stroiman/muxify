@@ -7,7 +7,9 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
 	. "github.com/stroiman/muxify"
@@ -15,9 +17,11 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
+type Env = map[string]string
+
 type FakeOS struct {
 	files fstest.MapFS
-	env   map[string]string
+	env   Env
 }
 
 func (os FakeOS) LookupEnv(key string) (string, bool) {
@@ -42,6 +46,13 @@ type ConfigurationTestSuite struct {
 	projectsConfigFile *fstest.MapFile
 }
 
+func fakeConfigFile(data string) *fstest.MapFile {
+	return &fstest.MapFile{
+		Data: []byte(data),
+		Mode: fs.ModePerm,
+	}
+}
+
 func (s *ConfigurationTestSuite) SetupSuite() {
 	s.projectsConfigFile = &fstest.MapFile{
 		Data: []byte(example_config),
@@ -53,7 +64,7 @@ func (s *ConfigurationTestSuite) SetupTest() {
 	s.GomegaSuite.SetupTest()
 	s.fakeOs = FakeOS{
 		fstest.MapFS{},
-		map[string]string{"HOME": "/users/foo"},
+		map[string]string{"HOME": "/users/USER"},
 	}
 }
 
@@ -63,7 +74,7 @@ type DefaultConfigSuiteTestSuite struct {
 
 func (s *DefaultConfigSuiteTestSuite) SetupTest() {
 	s.ConfigurationTestSuite.SetupTest()
-	s.fakeOs.files["/users/foo/.config/muxify/projects.yaml"] = s.projectsConfigFile
+	s.fakeOs.files["/users/USER/.config/muxify/projects.yaml"] = s.projectsConfigFile
 }
 
 func TestDefaultConfigSuite(t *testing.T) {
@@ -97,14 +108,14 @@ func (s *DefaultConfigSuiteTestSuite) TestDeserializeFullConfiguration() {
 }
 
 func (s *DefaultConfigSuiteTestSuite) TestExpandEnvVars() {
-	os.Setenv("MUX_TEST_VALUE", "/user/foo")
+	os.Setenv("MUX_TEST_VALUE", "/user/USER")
 	s.projectsConfigFile.Data = []byte(`projects:
   - name: project-1
     working_dir: $MUX_TEST_VALUE/work`)
 	projects, err := ReadConfiguration(s.fakeOs)
 	s.Expect(err).ToNot(HaveOccurred())
 	expected := MuxifyConfiguration{
-		Projects: []Project{{Name: "project-1", WorkingDirectory: "/user/foo/work"}},
+		Projects: []Project{{Name: "project-1", WorkingDirectory: "/user/USER/work"}},
 	}
 	s.Expect(projects).To(BeComparableTo(expected, cmpopts.IgnoreUnexported(Window{})))
 }
@@ -129,7 +140,7 @@ func (s *XDGOverwrittenTestSuite) TestFileIsUnderTheRedirectedLocation() {
 }
 
 func (s *XDGOverwrittenTestSuite) TestFailWhenFileIsNotInTheNewLoactionButDefault() {
-	s.fakeOs.files["/users/foo/.config/muxify/projects.yaml"] = s.projectsConfigFile
+	s.fakeOs.files["/users/USER/.config/muxify/projects.yaml"] = s.projectsConfigFile
 	_, err := ReadConfiguration(s.fakeOs)
 	s.Expect(err).To(HaveOccurred())
 }
@@ -148,13 +159,13 @@ func (s *AppNameOverwrittenTestSuite) SetupTest() {
 }
 
 func (s *AppNameOverwrittenTestSuite) TestSuccessWhenFileIsInNewFolder() {
-	s.fakeOs.files["/users/foo/.config/muxer/projects.yaml"] = s.projectsConfigFile
+	s.fakeOs.files["/users/USER/.config/muxer/projects.yaml"] = s.projectsConfigFile
 	_, err := ReadConfiguration(s.fakeOs)
 	s.Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *AppNameOverwrittenTestSuite) TestFailureWhenFileIsInDefaultFolder() {
-	s.fakeOs.files["/users/foo/.config/muxify/projects.yaml"] = s.projectsConfigFile
+	s.fakeOs.files["/users/USER/.config/muxify/projects.yaml"] = s.projectsConfigFile
 	_, err := ReadConfiguration(s.fakeOs)
 	s.Expect(err).To(HaveOccurred())
 }
@@ -207,3 +218,32 @@ projects:
           - pnpm test:watch
       dev:
 `
+
+func TestMultipleFiles(t *testing.T) {
+	project1config := `
+name: "project-1"
+working_dir: "/src/project-1"
+`
+	project2config := `
+name: "project-2"
+working_dir: "/src/project-2"
+`
+	fakeOs := FakeOS{
+		files: fstest.MapFS{
+			"/users/USER/.config/muxify/project1.yaml": fakeConfigFile(project1config),
+			"/users/USER/.config/muxify/project2.yaml": fakeConfigFile(project2config),
+		},
+		env: Env{"HOME": "/users/USER"},
+	}
+	config, err := ReadConfiguration(fakeOs)
+	assert.NoError(t, err)
+	expected := MuxifyConfiguration{
+		Projects: []Project{
+			{Name: "project-1", WorkingDirectory: "/src/project-1"},
+			{Name: "project-2", WorkingDirectory: "/src/project-2"},
+		},
+	}
+	gomega.NewWithT(t).
+		Expect(config).
+		To(BeComparableTo(expected, cmpopts.IgnoreUnexported(Window{})))
+}
